@@ -4,6 +4,8 @@ A gorgeous, retro-styled piano web application that syncs in real-time with a ph
 
 Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS2812B LED strip via custom high-speed USB serial (Adalight).
 
+![Lumino screenshot](assets/screenshot.png)
+
 ---
 
 ## 🌟 Features
@@ -41,7 +43,7 @@ Everything runs entirely in the browser using **Web MIDI API**, **Web Serial API
 2. Click **Connect MIDI + Audio** to initialize audio and sync your MIDI keyboard.
 3. Click **Connect LED Strip** in the header, select your ESP32's serial port, and the browser will talk directly to it at 1 Mbaud via Adalight.
 
-> Also deployable to GitHub Pages — just point Pages at the `docs/` directory and open the URL.
+> **Live demo**: [nipunarora8.github.io/the-piano-project](https://nipunarora8.github.io/the-piano-project/)
 
 ### `index.html` — Local version with Python backend
 
