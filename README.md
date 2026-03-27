@@ -2,7 +2,7 @@
 
 A gorgeous, retro-styled piano web application that syncs in real-time with a physical LED strip. Built with a stunning dark-mode "Marshall Amp" aesthetic, the interface provides beautiful glowing visual feedback, waveform spectrum analysis, and subtle responsive particle effects while flawlessly mirroring your keystrokes to hardware LEDs.
 
-Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS2812B LED strip via custom high-speed Serial or UDP (WLED).
+Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS2812B LED strip via custom high-speed USB serial (Adalight).
 
 ---
 
@@ -11,10 +11,10 @@ Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS28
 - **Web MIDI API Integration**: Instantly reads MIDI input directly from your piano keyboard (Chrome only).
 - **Premium Retro UI**: Features a detailed amp-style interface with a massive dynamic center display that glows with the velocity and color of the last played key.
 - **Real-Time Spectrum Analyzer**: Visualizes the audio output via a continuous glowing waveform.
-- **Hardware-Synchronized LEDs**: Drives a physical LED strip where colors and brightness map precisely to what you play. Included custom key-mapping (E5 split) to seamlessly align uniform LED strips with piano string gaps.
-- **Acoustic Sustain Simulation**: Holding the sustain pedal (MIDI CC 64) keeps notes ringing. When you release a sustained key, the physical LEDs will gracefully fade out over 4 seconds, perfectly mimicking the natural decay of a piano string. 
+- **Hardware-Synchronized LEDs**: Drives a physical LED strip where colors and brightness map precisely to what you play. Included custom key-mapping (E5 split) to seamlessly align uniform LED strips with piano key gaps.
+- **Acoustic Sustain Simulation**: Holding the sustain pedal (MIDI CC 64) keeps notes ringing. When you release a sustained key, the physical LEDs gracefully fade out over 4 seconds, perfectly mimicking the natural decay of a piano string.
 - **Live Customization Settings**: Tweak the aesthetic on the fly using the minimalist header controls. Instantly switch between custom-curated LED colormaps, or use the global LED brightness slider to dim the lights for night-time playing without losing relative velocity dynamics.
-- **High-Performance Python Backend**: A robust `asyncio` Python server handles WebSocket traffic from the browser, decoupling it into a strictly capped 40 FPS render loop to prevent hardware UART buffer overflows when mashing chords.
+- **No backend required**: The browser talks directly to the ESP32 over USB serial via the **Web Serial API** — no Python server, no WebSocket, nothing to install.
 
 ---
 
@@ -23,35 +23,60 @@ Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS28
 | Component | Details |
 |-----------|---------|
 | Keyboard | M-Audio Keystation 61 MK3 (MIDI range C3 to C8 / 48–108) |
-| Microcontroller | ESP32-D0WD-V3 (or similar), driving the LEDs |
+| Microcontroller | ESP32-D0WD-V3 (or similar), flashed with the Adalight sketch |
 | LED strip | 62× WS2812B pixels physically mapped to 61 keys (E5 spans two LEDs) |
-| Connection | WiFi UDP (WLED) or USB serial (~1 Mbaud Adalight) |
+| Connection | USB serial at 1 Mbaud (Adalight protocol) |
 
 ---
 
 ## 🚀 Running the Project
 
-### 1. Start the Hardware Backend
+There are two versions:
+
+### `pages/index.html` — GitHub Pages / standalone (recommended)
+
+Everything runs entirely in the browser using **Web MIDI API**, **Web Serial API**, and **Tone.js**. No server, no Python, nothing to install.
+
+1. Open `pages/index.html` in **Google Chrome** (or any Chromium browser).
+2. Click **Connect MIDI + Audio** to initialize audio and sync your MIDI keyboard.
+3. Click **Connect LED Strip** in the header, select your ESP32's serial port, and the browser will talk directly to it at 1 Mbaud via Adalight.
+
+> Also deployable to GitHub Pages — just point Pages at the `pages/` directory and open the URL.
+
+### `index.html` — Local version with Python backend
+
+The original local-only version. Requires a Python WebSocket server as a bridge between the browser and the ESP32.
 
 ```bash
 # Install dependencies
 pip install websockets pyserial
 
-# Run the backend server
+# Run the backend server (auto-detects ESP32 on USB, falls back to WLED UDP)
 python3 piano_backend.py
+
+# Open index.html in Chrome
 ```
-
-The backend dynamically auto-detects an ESP32 connected via USB on macOS and automatically engages the high-speed Adalight serial protocol. If not found, it seamlessly falls back to WLED UDP.
-
-### 2. Launch the Interface
-
-Open `index.html` in **Google Chrome** (required for Web MIDI access).
-
-Click **Connect MIDI + Audio** to initialize Tone.js and sync with your MIDI keyboard. The Salamander Grand Piano samples will be dynamically fetched on your first keystroke.
 
 ---
 
 ## 🔧 Architecture & Data Flow
+
+### Standalone (`pages/index.html`)
+
+```text
+[ MIDI Keyboard ]
+       │ (USB)
+       ▼
+[ Google Chrome ]  <-- Web MIDI API + Web Serial API + Tone.js + Canvas UI
+       │ (USB @ 1 Mbaud, Adalight protocol)
+       ▼
+    [ ESP32 ]      <-- Adalight firmware (FastLED)
+       │ (GPIO)
+       ▼
+[ WS2812B Strip ]
+```
+
+### Local with Python backend (`index.html`)
 
 ```text
 [ MIDI Keyboard ]
@@ -85,5 +110,6 @@ Every key is permanently assigned a distinct vibrant hue from a 62-step color wh
 ---
 
 ## ⚠️ Notes
-- **Browser Compatibility**: Safari and Firefox do not natively support the Web MIDI API. You must use Chromium-based browsers.
-- **ESP32 WiFi**: If you experience extreme UDP packet loss with WLED, standard ESP32 boards often suffer from antenna noise. The included USB Adalight serial mode skips WiFi entirely and provides flawless 1ms response times.
+- **Browser Compatibility**: Safari and Firefox do not support Web MIDI or Web Serial APIs. You must use Chrome or a Chromium-based browser.
+- **Web Serial prompt**: The first time you click **Connect LED Strip**, Chrome will show a port-picker dialog. Select your ESP32's USB serial port. This permission persists for the session.
+- **ESP32 firmware**: Flash `esp32_serial/esp32_serial.ino` (FastLED Adalight sketch) onto your ESP32. Set `DATA_PIN` to match your LED data GPIO before flashing.
