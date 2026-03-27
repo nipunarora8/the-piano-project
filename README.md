@@ -33,15 +33,15 @@ Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS28
 
 There are two versions:
 
-### `pages/index.html` — GitHub Pages / standalone (recommended)
+### `docs/index.html` — GitHub Pages / standalone (recommended)
 
 Everything runs entirely in the browser using **Web MIDI API**, **Web Serial API**, and **Tone.js**. No server, no Python, nothing to install.
 
-1. Open `pages/index.html` in **Google Chrome** (or any Chromium browser).
+1. Open `docs/index.html` in **Google Chrome** (or any Chromium browser).
 2. Click **Connect MIDI + Audio** to initialize audio and sync your MIDI keyboard.
 3. Click **Connect LED Strip** in the header, select your ESP32's serial port, and the browser will talk directly to it at 1 Mbaud via Adalight.
 
-> Also deployable to GitHub Pages — just point Pages at the `pages/` directory and open the URL.
+> Also deployable to GitHub Pages — just point Pages at the `docs/` directory and open the URL.
 
 ### `index.html` — Local version with Python backend
 
@@ -61,7 +61,7 @@ python3 piano_backend.py
 
 ## 🔧 Architecture & Data Flow
 
-### Standalone (`pages/index.html`)
+### Standalone (`docs/index.html`)
 
 ```text
 [ MIDI Keyboard ]
