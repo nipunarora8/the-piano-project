@@ -48,6 +48,17 @@ except ImportError:
 except Exception as e:
     print(f"Serial open failed: {e} — using UDP")
 
+# ── Gamma correction ─────────────────────────────────────
+# sRGB display uses gamma≈2.2; WS2812B LEDs are linear.
+# Without correction mid-range greens appear ~5× too strong,
+# shifting e.g. orange → yellow on the physical strip.
+# Green also gets a 0.85× trim for WS2812B green-die brightness bias.
+_GAMMA     = [round(255 * (i / 255) ** 2.2) for i in range(256)]
+_GAMMA_G   = [round(255 * (i / 255) ** 2.2 * 0.85) for i in range(256)]
+
+def gamma_correct(r, g, b):
+    return _GAMMA[r], _GAMMA_G[g], _GAMMA[b]
+
 # ── Colors ────────────────────────────────────────────────
 BLACK_KEY_SEMITONES = {1, 3, 6, 8, 10}
 
@@ -86,7 +97,7 @@ def _send_serial():
     chk = hi ^ lo ^ 0x55
     data = bytes([ord('A'), ord('d'), ord('a'), hi, lo, chk])
     for r, g, b in led_state[:n]:
-        data += bytes([r, g, b])
+        data += bytes(gamma_correct(r, g, b))
     try:
         ser.write(data)
     except Exception as e:
@@ -96,7 +107,7 @@ def _send_udp():
     """WLED DRGB UDP protocol."""
     data = bytes([2, 255])
     for r, g, b in led_state:
-        data += bytes([r, g, b])
+        data += bytes(gamma_correct(r, g, b))
     try:
         sock.sendto(data, (WLED_IP, WLED_PORT))
     except OSError as e:

@@ -171,9 +171,28 @@ body::after{
   font-size: 0.8rem;
   letter-spacing: 0.3em;
   color: var(--muted);
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   text-transform: uppercase;
 }
+.chord-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 2.2rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: rgb(var(--lc, 201,162,39));
+  text-shadow: 0 0 30px rgba(var(--lc, 201,162,39), 0.4);
+  min-height: 2.2rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+}
+.chord-name.visible { opacity: 1; }
+.chord-sep { font-style: normal; font-size: 1rem; opacity: 0.3; letter-spacing: 0; }
 
 .active-notes {
   display: flex;
@@ -432,6 +451,11 @@ body::after{
     <div class="note-display" id="noteDisplay">
       <div class="current-note idle" id="currentNote">—</div>
       <div class="note-label" id="noteLabel">awaiting input</div>
+      <div class="chord-name" id="chordName">
+        <span id="chordL"></span>
+        <span class="chord-sep" id="chordSep" style="display:none">·</span>
+        <span id="chordR"></span>
+      </div>
     </div>
     <div class="active-notes" id="activeNotes"></div>
 
@@ -721,6 +745,19 @@ async function connectSerial() {
   }
 }
 
+// sRGB → linear gamma correction so physical WS2812B LEDs match display colors.
+// Displays use gamma≈2.2; LEDs are linear. Without this, mid-range greens appear
+// ~5× too strong on the strip, shifting e.g. orange → yellow.
+// Green also gets a 0.85× trim: WS2812B green dies are physically brighter than
+// red/blue at equivalent PWM values, which shifts yellows/yellow-greens toward green.
+const GAMMA_LUT = new Uint8Array(256);
+const GAMMA_LUT_G = new Uint8Array(256);
+for (let i = 0; i < 256; i++) {
+  const g = Math.pow(i / 255, 2.2);
+  GAMMA_LUT[i]   = Math.round(255 * g);
+  GAMMA_LUT_G[i] = Math.round(255 * g * 0.85);
+}
+
 function buildAdalight() {
   const n = PIANO_LEDS;
   const hi = (n - 1) >> 8;
@@ -730,9 +767,9 @@ function buildAdalight() {
   buf[0] = 0x41; buf[1] = 0x64; buf[2] = 0x61; // 'Ada'
   buf[3] = hi; buf[4] = lo; buf[5] = chk;
   for (let i = 0; i < n; i++) {
-    buf[6 + i*3]     = hwLedState[i][0];
-    buf[6 + i*3 + 1] = hwLedState[i][1];
-    buf[6 + i*3 + 2] = hwLedState[i][2];
+    buf[6 + i*3]     = GAMMA_LUT[hwLedState[i][0]];
+    buf[6 + i*3 + 1] = GAMMA_LUT_G[hwLedState[i][1]];
+    buf[6 + i*3 + 2] = GAMMA_LUT[hwLedState[i][2]];
   }
   return buf;
 }
@@ -996,6 +1033,40 @@ function fadeLED(mIdx, customDur){
   fadingLEDs.set(mIdx,requestAnimationFrame(step));
 }
 
+// ── Chord detection ───────────────────────────────────────
+const CHORD_DEFS = [
+  {intervals:[4,7,10,2], name:'dom9'  },
+  {intervals:[3,7,10,2], name:'min9'  },
+  {intervals:[4,7,11,2], name:'maj9'  },
+  {intervals:[4,7,10],   name:'dom7'  },
+  {intervals:[3,7,10],   name:'min7'  },
+  {intervals:[4,7,11],   name:'maj7'  },
+  {intervals:[3,6,10],   name:'m7b5'  },
+  {intervals:[3,6,9],    name:'dim7'  },
+  {intervals:[2,4,7],    name:'add9'  },
+  {intervals:[2,7],      name:'sus2'  },
+  {intervals:[5,7],      name:'sus4'  },
+  {intervals:[4,7],      name:'maj'   },
+  {intervals:[3,7],      name:'min'   },
+  {intervals:[3,6],      name:'dim'   },
+  {intervals:[4,8],      name:'aug'   },
+  {intervals:[7],        name:'5'     },
+];
+
+function detectChord(midis){
+  const pcs=[...new Set(midis.map(m=>m%12))].sort((a,b)=>a-b);
+  if(pcs.length<2)return null;
+  for(const def of CHORD_DEFS){
+    const defSet=def.intervals.slice().sort((a,b)=>a-b);
+    if(defSet.length!==pcs.length-1)continue;
+    for(const root of pcs){
+      const ivals=pcs.filter(p=>p!==root).map(p=>(p-root+12)%12).sort((a,b)=>a-b);
+      if(ivals.every((v,i)=>v===defSet[i]))return NOTE_NAMES[root]+' '+def.name;
+    }
+  }
+  return null;
+}
+
 function updatePills(){
   const centerEl = document.getElementById('activeNotes');
   if(centerEl) centerEl.innerHTML='';
@@ -1010,6 +1081,35 @@ function updatePills(){
       centerEl.appendChild(p2);
     }
   });
+
+  const chordEl = document.getElementById('chordName');
+  const lEl = document.getElementById('chordL');
+  const rEl = document.getElementById('chordR');
+  const sepEl = document.getElementById('chordSep');
+  if(!chordEl||!lEl||!rEl||!sepEl) return;
+
+  const allMidis = [...activeNotes.keys()].sort((a,b)=>a-b);
+  let lChord = null, rChord = null;
+
+  if(allMidis.length >= 2){
+    // 1. Try all notes as one chord
+    lChord = detectChord(allMidis);
+
+    // 2. If no single chord, try every binary split (low notes | high notes)
+    //    and pick the first split where both halves are recognised chords
+    if(!lChord){
+      for(let s = 1; s < allMidis.length; s++){
+        const l = detectChord(allMidis.slice(0, s));
+        const r = detectChord(allMidis.slice(s));
+        if(l && r){ lChord = l; rChord = r; break; }
+      }
+    }
+  }
+
+  lEl.textContent = lChord || '';
+  rEl.textContent = rChord || '';
+  sepEl.style.display = (lChord && rChord) ? '' : 'none';
+  chordEl.classList.toggle('visible', !!lChord);
 }
 
 function testLEDs(){
