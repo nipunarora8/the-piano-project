@@ -776,9 +776,12 @@ for(let i=0;i<NUM_KEYS;i++){
     m.textContent=noteName(MIDI_START+i);k.appendChild(m);
   }
   const ii=i;
-  k.addEventListener('mousedown',e=>{e.preventDefault();triggerNote(midiBase+ii,100);});
+  k.addEventListener('mousedown',e=>{e.preventDefault(); if(Tone.context && Tone.context.state!=='running')Tone.start(); triggerNote(midiBase+ii,100);});
+  k.addEventListener('touchstart',e=>{e.preventDefault(); if(Tone.context && Tone.context.state!=='running')Tone.start(); triggerNote(midiBase+ii,100);}, {passive:false});
   k.addEventListener('mouseup',  ()=>releaseNote(midiBase+ii));
   k.addEventListener('mouseleave',()=>releaseNote(midiBase+ii));
+  k.addEventListener('touchend',  e=>{e.preventDefault(); releaseNote(midiBase+ii);}, {passive:false});
+  k.addEventListener('touchcancel',e=>{e.preventDefault(); releaseNote(midiBase+ii);}, {passive:false});
   kbEl.appendChild(k);keyByIdx[i]=k;wIdx++;
 }
 // Black keys
@@ -790,9 +793,12 @@ for(let i=0;i<NUM_KEYS;i++){
   k.style.setProperty('--kc',c.full);
   k.style.setProperty('--kg',`rgba(${c.fr},${c.fg},${c.fb},.7)`);
   const ii=i;
-  k.addEventListener('mousedown',e=>{e.stopPropagation();e.preventDefault();triggerNote(midiBase+ii,100);});
+  k.addEventListener('mousedown',e=>{e.stopPropagation();e.preventDefault(); if(Tone.context && Tone.context.state!=='running')Tone.start(); triggerNote(midiBase+ii,100);});
+  k.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault(); if(Tone.context && Tone.context.state!=='running')Tone.start(); triggerNote(midiBase+ii,100);}, {passive:false});
   k.addEventListener('mouseup',  ()=>releaseNote(midiBase+ii));
   k.addEventListener('mouseleave',()=>releaseNote(midiBase+ii));
+  k.addEventListener('touchend',  e=>{e.preventDefault(); releaseNote(midiBase+ii);}, {passive:false});
+  k.addEventListener('touchcancel',e=>{e.preventDefault(); releaseNote(midiBase+ii);}, {passive:false});
   kbEl.appendChild(k);keyByIdx[i]=k;
 }
 
@@ -1128,6 +1134,7 @@ async function handleMidiUpload(e) {
 }
 
 async function toggleDemoMode() {
+  if (Tone.context && Tone.context.state !== 'running') await Tone.start();
   const btn = document.getElementById('btnLdDemo');
   if (demoAbortController) {
     stopDemoMode();
