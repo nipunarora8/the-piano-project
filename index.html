@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/tone@14/build/Tone.js"></script>
+<script src="https://unpkg.com/@tonejs/midi"></script>
 <style>
 :root{
   --bg:   #0c0b09;
@@ -137,6 +138,76 @@ body::after{
 .hdr-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.15)}
 .hdr-divider{width:1px;height:28px;background:var(--bord);flex-shrink:0}
 
+.header-action-group{display:flex;flex-direction:column;align-items:center;gap:0.15rem;margin-left:0.25rem}
+.cg-label{font-family:'Space Mono',monospace;font-size:0.5rem;color:var(--gold);letter-spacing:0.08em;font-weight:700;white-space:nowrap;line-height:1;margin-bottom:-0.1rem}
+.cg-buttons{display:flex;gap:0.3rem}
+.hdr-btn.icon-btn{padding:0.35rem 0.5rem;display:flex;align-items:center;justify-content:center}
+.hdr-btn.icon-btn svg{width:1.1rem;height:1.1rem;color:var(--fg)}
+.hdr-btn.icon-btn:hover svg{color:var(--gold)}
+.hdr-btn.gold-btn{background:rgba(201,162,39,0.1);border-color:var(--gold);color:var(--gold);font-weight:700}
+
+/* ── LEARNING DASHBOARD ──────────────────────────────────── */
+.learn-dash{
+  width:100%;max-width:min(95vw,2400px);
+  background:var(--pan2);border:1px solid var(--bord);border-radius:4px;
+  padding:0.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;
+  margin-bottom:-0.25rem;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);overflow:hidden;height:auto;opacity:1;
+}
+.learn-dash.hidden{height:0;padding-top:0;padding-bottom:0;border-width:0;opacity:0;margin-bottom:0}
+.ld-info{flex:1;display:flex;align-items:center;gap:1rem}
+.ld-step{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--gold);letter-spacing:0.1em;font-weight:700;white-space:nowrap}
+.ld-queue-wrap{
+  flex:1;overflow:hidden;height:32px;position:relative;display:block;margin:0 1rem;
+  mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);
+}
+.ld-queue{display:flex;gap:0.5rem;width:max-content;height:100%;align-items:center;transition:transform 0.4s cubic-bezier(0.3,1,0.4,1)}
+.ld-q-item{
+  font-family:'Space Mono',monospace;font-size:0.65rem;padding:0.2rem 0.6rem;
+  background:rgba(255,255,255,0.05);border:1px solid var(--bord2);border-radius:2px;
+  color:var(--muted);white-space:nowrap;flex-shrink:0;transition:all 0.3s;
+}
+.ld-q-item.current{background:rgba(201,162,39,0.15);border-color:var(--gold);color:var(--gold);transform:scale(1.15);box-shadow:0 0 15px rgba(201,162,39,0.25)}
+.ld-controls{display:flex;gap:0.5rem}
+.ld-btn{
+  font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;
+  padding:0.4rem 0.8rem;background:transparent;border:1px solid var(--bord2);
+  color:var(--muted);border-radius:2px;cursor:pointer;transition:all 0.2s;
+  text-transform:uppercase;letter-spacing:0.1em;
+}
+.ld-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.1)}
+.ld-btn.active{background:var(--gold);color:var(--bg)}
+
+.wk.pulsing:not(.active){
+  background:linear-gradient(180deg,var(--kc,#c9a227) 0%,color-mix(in srgb,var(--kc,#c9a227) 18%,#faf5e6) 100%) !important;
+  animation:pulseWk 1.5s infinite ease-in-out;
+}
+.bk.pulsing:not(.active){
+  background:linear-gradient(180deg,var(--kc,#c9a227) 0%,color-mix(in srgb,var(--kc,#c9a227) 35%,#000) 100%) !important;
+  animation:pulseBk 1.5s infinite ease-in-out;
+}
+.wk.upcoming{
+  --kc:#fff !important;--kg:rgba(255,255,255,0.9) !important;
+  background:linear-gradient(180deg,var(--kc) 0%,color-mix(in srgb,var(--kc) 25%,#faf5e6) 100%) !important;
+  animation:pulseWk 1.2s infinite ease-in-out !important;
+}
+.bk.upcoming{
+  --kc:rgb(255,180,80) !important;--kg:rgba(255,180,80,0.9) !important;
+  background:linear-gradient(180deg,var(--kc) 0%,color-mix(in srgb,var(--kc) 40%,#000) 100%) !important;
+  animation:pulseBk 1.2s infinite ease-in-out !important;
+}
+@keyframes pulseWk{
+  0%{filter:brightness(0.6) saturate(0.6);box-shadow:0 0 10px var(--kg)}
+  50%{filter:brightness(1.1) saturate(1.2);box-shadow:0 0 30px var(--kg),1px 2px 4px rgba(0,0,0,.4)}
+  100%{filter:brightness(0.6) saturate(0.6);box-shadow:0 0 10px var(--kg)}
+}
+@keyframes pulseBk{
+  0%{filter:brightness(0.5) saturate(0.6);box-shadow:0 0 10px var(--kg)}
+  50%{filter:brightness(1.2) saturate(1.2);box-shadow:0 0 35px var(--kg)}
+  100%{filter:brightness(0.5) saturate(0.6);box-shadow:0 0 10px var(--kg)}
+}
+
 /* ── MAIN — flex column, all content centered ────────────── */
 .main{
   flex:1;display:flex;flex-direction:column;align-items:center;
@@ -156,19 +227,19 @@ body::after{
   text-align: center;
   position: relative;
   width: 100%;
-  padding: 0.5rem 0;
+  padding: 2rem 0;
   border-radius: 40%;
   transition: background 0.15s ease;
 }
 .current-note {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 5rem;
+  font-size: 6rem;
   font-weight: 600;
   font-style: italic;
   color: rgb(var(--lc, 201,162,39));
   letter-spacing: -0.02em;
   line-height: 1;
-  min-height: 5rem;
+  min-height: 6rem;
   transition: opacity 0.3s;
   text-shadow: 0 0 60px rgba(var(--lc, 201,162,39), 0.5);
 }
@@ -191,6 +262,7 @@ body::after{
   color: rgb(var(--lc, 201,162,39));
   text-shadow: 0 0 30px rgba(var(--lc, 201,162,39), 0.4);
   min-height: 2.2rem;
+  margin-top: 1rem;
   opacity: 0;
   transition: opacity 0.15s ease;
   display: flex;
@@ -243,7 +315,7 @@ body::after{
   animation:pop .07s ease;white-space:nowrap;
 }
 @keyframes pop{from{transform:scale(.6) translateY(3px);opacity:0}to{transform:scale(1);opacity:1}}
-#specCanvas{width:100%;height:45px;display:block}
+#specCanvas{width:100%;height:60px;display:block}
 
 /* ── PIANO CARD ──────────────────────────────────────────── */
 .piano-card{
@@ -401,7 +473,7 @@ body::after{
   <div class="modal">
     <div class="modal-eyebrow">Lumino · Piano Interface</div>
     <div class="modal-title">Begin</div>
-    <p class="modal-sub">M-Audio Keystation 61 MK3<br>Connect MIDI to enable your keyboard.<br>Salamander Grand Piano loads on first play.</p>
+    <p class="modal-sub">M-Audio Keystation 61 MK3<br>Connect MIDI to enable your keyboard.<br>Salamander Grand Piano loads on first play.<br>Use <strong style="color:var(--gold)">Learning Mode</strong> in the header<br>to practice songs step by step.</p>
     <button class="mbtn" id="btnConnect">Connect MIDI + Audio</button>
     <button class="mbtn ghost" id="btnSkip">Continue without MIDI</button>
     <p class="modal-note">Chrome required · ws://localhost:8765</p>
@@ -447,13 +519,56 @@ body::after{
     </div>
 
     <div class="hdr-divider"></div>
-    <button class="hdr-btn" id="btnTestLED">Test LEDs</button>
+    <div class="header-action-group">
+      <div class="cg-label">LED STRIP</div>
+      <div class="cg-buttons">
+        <button class="hdr-btn icon-btn" id="btnTestLED" title="Test LEDs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m5.2 5.2 2.8 2.8"/><path d="m18.8 18.8-2.8-2.8"/>
+            <path d="m5.2 18.8 2.8-2.8"/><path d="m18.8 5.2-2.8 2.8"/>
+            <path d="m12 1v4"/><path d="m12 19v4"/>
+            <path d="m1 12h4"/><path d="m19 12h4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="hdr-divider"></div>
+    <button class="hdr-btn gold-btn" id="btnLearnToggle">[ Learning Mode ]</button>
   </div>
 </header>
 
 <!-- ── MAIN ──────────────────────────────────────────────── -->
 <div class="main">
   <div class="center-col">
+
+    <!-- Learning Dashboard -->
+    <div class="learn-dash hidden" id="learnDash">
+      <div class="ld-info">
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <select id="songSelect" class="minimal-select"></select>
+          <label class="ld-btn" for="midiUpload" title="Import MIDI File"
+            style="cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0.35rem 0.5rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </label>
+          <input type="file" id="midiUpload" accept=".mid,.midi" style="display:none;">
+        </div>
+        <span class="ld-step" id="ldStep">Step 0 / 0</span>
+      </div>
+      <div class="ld-queue-wrap" id="ldQueueWrap">
+        <div class="ld-queue" id="ldQueue"></div>
+      </div>
+      <div class="ld-controls">
+        <button class="ld-btn" id="btnLdPrev">Prev</button>
+        <button class="ld-btn" id="btnLdNext">Skip</button>
+        <button class="ld-btn" id="btnLdDemo">▶ Demo</button>
+        <button class="ld-btn" id="btnLdReset">Reset</button>
+      </div>
+    </div>
 
     <!-- Note Display -->
     <div class="note-display" id="noteDisplay">
@@ -517,6 +632,7 @@ body::after{
 // ── Constants ─────────────────────────────────────────────
 const MIDI_START = 48;
 const NUM_KEYS   = 61;
+const PIANO_LEDS = 62;
 const WK_W       = 36;
 const LED_R      = 4;
 const BLACK_SEM  = new Set([1,3,6,8,10]);
@@ -648,7 +764,7 @@ function scalePiano(){
   inner.style.transformOrigin='left top';
   outer.style.height=Math.ceil((14+6+260+22)*currentScale)+'px';
 }
-window.addEventListener('resize',()=>{scalePiano();resizeSpec();});
+window.addEventListener('resize',()=>{scalePiano();resizeSpec();if(typeof queueCenter==='function')queueCenter();});
 
 // ── Particles ─────────────────────────────────────────────
 const pCanvas=document.getElementById('pCanvas');
@@ -804,25 +920,383 @@ async function initAudio(){
 }
 function showLoad(on){document.getElementById('loadBar').classList.toggle('hidden',!on)}
 
+// ── Learning Mode ─────────────────────────────────────────
+const LEARNING_SONGS = {
+  "scale": {
+    name: "C Major Scale",
+    steps: [{n:[60]},{n:[62]},{n:[64]},{n:[65]},{n:[67]},{n:[69]},{n:[71]},{n:[72]}]
+  },
+  "chords": {
+    name: "Pop Chords (C - G - Am - F)",
+    steps: [{n:[60,64,67]},{n:[55,59,62]},{n:[57,60,64]},{n:[53,57,60]}]
+  },
+  "twinkle": {
+    name: "Twinkle Twinkle",
+    steps: [
+      {n:[60]},{n:[60]},{n:[67]},{n:[67]},{n:[69]},{n:[69]},{n:[67]},
+      {n:[65]},{n:[65]},{n:[64]},{n:[64]},{n:[62]},{n:[62]},{n:[60]}
+    ]
+  },
+  "furelise": {
+    name: "Für Elise (Full Theme)",
+    steps: [
+      {n:[64]},{n:[63]},{n:[64]},{n:[63]},{n:[64]},{n:[59]},{n:[62]},{n:[60]},{n:[57]},
+      {n:[48]},{n:[52]},{n:[57]},{n:[59]},
+      {n:[52]},{n:[56]},{n:[59]},{n:[60]},
+      {n:[52]},{n:[64]},{n:[63]},{n:[64]},{n:[63]},{n:[64]},{n:[59]},{n:[62]},{n:[60]},{n:[57]},
+      {n:[48]},{n:[52]},{n:[57]},{n:[59]},
+      {n:[52]},{n:[60]},{n:[59]},{n:[57]}
+    ]
+  },
+  "bmajor": {
+    name: "B Major Scale",
+    steps: [{n:[59]},{n:[61]},{n:[63]},{n:[64]},{n:[66]},{n:[68]},{n:[70]},{n:[71]}]
+  }
+};
+let learnState = {active:false, song:null, stepIdx:0, heldTargets:new Set(), mistakeActive:false, readyToAdvance:false, stepSatisfied:false};
+let demoAbortController = null;
+
+function initLearnUI() {
+  const sel = document.getElementById('songSelect');
+  for (const k in LEARNING_SONGS) {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = LEARNING_SONGS[k].name;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', () => { if (demoAbortController) stopDemoMode(); loadSong(sel.value); });
+  document.getElementById('btnLearnToggle').addEventListener('click', toggleLearnMode);
+  document.getElementById('btnLdNext').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); advanceLearnStep(1); });
+  document.getElementById('btnLdPrev').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); advanceLearnStep(-1); });
+  document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
+  document.getElementById('btnLdReset').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]); });
+  const midiInput = document.getElementById('midiUpload');
+  if (midiInput) midiInput.addEventListener('change', handleMidiUpload);
+}
+
+function toggleLearnMode() {
+  learnState.active = !learnState.active;
+  document.getElementById('btnLearnToggle').classList.toggle('active', learnState.active);
+  document.getElementById('learnDash').classList.toggle('hidden', !learnState.active);
+  if (learnState.active) {
+    if (!learnState.song) loadSong(Object.keys(LEARNING_SONGS)[0]);
+    else { renderLearnStep(); queueCenter(); }
+  } else {
+    if (demoAbortController) stopDemoMode();
+    clearLearnVisuals();
+  }
+}
+
+async function handleMidiUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const ToneMidi = typeof Midi === "undefined" ? window.Midi : Midi;
+    const midiData = new ToneMidi(arrayBuffer);
+    const allNotes = [];
+    midiData.tracks.forEach(track => {
+      if (track.channel === 9) return;
+      track.notes.forEach(note => allNotes.push(note));
+    });
+    if (allNotes.length === 0) { showToast("No playable piano notes found in MIDI."); return; }
+    allNotes.sort((a, b) => a.time - b.time);
+    const steps = [];
+    let currentStep = null;
+    const EPSILON = 0.06;
+    allNotes.forEach(note => {
+      let m = Math.round(note.midi);
+      while (m < 48 && m > 12) m += 12;
+      while (m > 108 && m < 127) m -= 12;
+      if (m < 48) m = 48;
+      if (m > 108) m = 108;
+      if (!currentStep || (note.time - currentStep.time > EPSILON)) {
+        currentStep = {n:[m], time:note.time, dur:note.duration};
+        steps.push(currentStep);
+      } else {
+        if (!currentStep.n.includes(m)) currentStep.n.push(m);
+        currentStep.dur = Math.max(currentStep.dur || 0, note.duration);
+      }
+    });
+    const newId = 'custom_' + Date.now();
+    let name = midiData.header.name || file.name.replace(/\.mid[i]?$/i, '');
+    if (!name || name.trim() === '') name = "Imported Song";
+    LEARNING_SONGS[newId] = {name:"✍ " + name, steps};
+    const sel = document.getElementById('songSelect');
+    const opt = document.createElement('option');
+    opt.value = newId; opt.textContent = LEARNING_SONGS[newId].name;
+    sel.appendChild(opt);
+    sel.value = newId;
+    if (demoAbortController) stopDemoMode();
+    loadSong(newId);
+    showToast(`Imported ${steps.length} learning steps!`);
+  } catch (error) {
+    console.error("MIDI import error:", error);
+    showToast("Error parsing MIDI file");
+  } finally {
+    e.target.value = '';
+  }
+}
+
+async function toggleDemoMode() {
+  const btn = document.getElementById('btnLdDemo');
+  if (demoAbortController) {
+    stopDemoMode();
+  } else {
+    btn.textContent = '⏹ Stop';
+    btn.classList.add('active');
+    demoAbortController = new AbortController();
+    await playDemo(demoAbortController.signal);
+    if (demoAbortController) stopDemoMode();
+  }
+}
+function stopDemoMode() {
+  if (demoAbortController) demoAbortController.abort();
+  demoAbortController = null;
+  const btn = document.getElementById('btnLdDemo');
+  if (btn) { btn.textContent = '▶ Demo'; btn.classList.remove('active'); }
+  for (let midi of activeNotes.keys()) releaseNote(midi);
+  loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]);
+}
+async function playDemo(signal) {
+  if (!learnState.song) return;
+  loadSong(learnState.song.id);
+  const playLength = learnState.song.steps.length;
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  await sleep(500);
+  for (let i = 0; i < playLength; i++) {
+    if (signal.aborted) return;
+    const st = learnState.song.steps[i];
+    const nextSt = learnState.song.steps[i + 1];
+    st.n.forEach(midi => triggerNote(midi, 100));
+    let holdMs = (st.dur || 0.45) * 1000;
+    let timeUntilNext = 600;
+    if (nextSt && typeof nextSt.time !== 'undefined' && typeof st.time !== 'undefined') {
+      timeUntilNext = (nextSt.time - st.time) * 1000;
+    }
+    if (holdMs > timeUntilNext - 20) holdMs = timeUntilNext - 20;
+    if (holdMs <= 0) holdMs = 10;
+    let breathMs = timeUntilNext - holdMs;
+    await sleep(holdMs);
+    if (signal.aborted) return;
+    st.n.forEach(midi => releaseNote(midi));
+    if (breathMs > 0) await sleep(breathMs);
+    if (signal.aborted) return;
+  }
+  await sleep(600);
+}
+
+function loadSong(id) {
+  learnState.song = LEARNING_SONGS[id];
+  learnState.song.id = id;
+  learnState.stepIdx = 0;
+  learnState.heldTargets.clear();
+  learnState.stepSatisfied = false;
+  const qEl = document.getElementById('ldQueue');
+  if (qEl) {
+    qEl.innerHTML = '';
+    learnState.song.steps.forEach((st, i) => {
+      const d = document.createElement('div');
+      d.className = 'ld-q-item'; d.id = `ldq-${i}`;
+      d.textContent = st.n.map(m => noteName(m).replace(/([0-9]+)$/, '$1')).join(' + ');
+      qEl.appendChild(d);
+    });
+  }
+  renderLearnStep();
+}
+function queueCenter() {
+  const qEl = document.getElementById('ldQueue');
+  const currEl = document.getElementById(`ldq-${learnState.stepIdx}`);
+  if (qEl && currEl) {
+    const wrapper = document.getElementById('ldQueueWrap');
+    if (wrapper.offsetWidth > 0) {
+      const offset = (wrapper.offsetWidth / 2) - currEl.offsetLeft - (currEl.offsetWidth / 2);
+      qEl.style.transform = `translateX(${offset}px)`;
+    }
+  }
+}
+function advanceLearnStep(dir) {
+  if (!learnState.song) return;
+  learnState.stepIdx += dir;
+  if (learnState.stepIdx < 0) learnState.stepIdx = 0;
+  if (learnState.stepIdx >= learnState.song.steps.length) learnState.stepIdx = learnState.song.steps.length - 1;
+  learnState.heldTargets.clear();
+  renderLearnStep();
+}
+function renderLearnStep() {
+  if (!learnState.active || !learnState.song) return;
+  clearLearnVisuals();
+  const st = learnState.song.steps[learnState.stepIdx];
+  document.getElementById('ldStep').textContent = `Step ${learnState.stepIdx + 1} / ${learnState.song.steps.length}`;
+  const qEl = document.getElementById('ldQueue');
+  if (qEl) {
+    for (let i = 0; i < qEl.children.length; i++) {
+      qEl.children[i].classList.toggle('current', i === learnState.stepIdx);
+    }
+  }
+  queueCenter();
+  if (!st) return;
+  st.n.forEach(midi => {
+    const idx = midi - midiBase;
+    if (idx >= 0 && idx < NUM_KEYS) {
+      const k = keyByIdx[idx];
+      if (k) k.classList.add('pulsing');
+    }
+  });
+  checkLearningState();
+}
+function clearLearnVisuals() {
+  for (let i = 0; i < NUM_KEYS; i++) {
+    const k = keyByIdx[i];
+    if (k) { k.classList.remove('pulsing'); k.classList.remove('upcoming'); }
+    const mIdxs = i < 28 ? [i] : (i === 28 ? [28, 29] : [i + 1]);
+    if (!activeNotes.has(midiBase + i)) {
+      mIdxs.forEach(mIdx => {
+        if (!fadingLEDs.has(mIdx)) {
+          if (ledEls[mIdx]) { ledEls[mIdx].style.background = ''; ledEls[mIdx].style.boxShadow = ''; ledEls[mIdx].classList.remove('on'); }
+        }
+      });
+    }
+  }
+  learnState.heldTargets.clear();
+}
+function checkLearningState() {
+  if (!learnState.active || !learnState.song) return;
+  const st = learnState.song.steps[learnState.stepIdx];
+  if (!st) return;
+  const prevSt = learnState.stepIdx > 0 ? learnState.song.steps[learnState.stepIdx - 1] : null;
+  const nextSt = learnState.song.steps[learnState.stepIdx + 1];
+  let mistake = false;
+  activeNotes.forEach((vel, midi) => {
+    if (!st.n.includes(midi) &&
+        !(prevSt && prevSt.n.includes(midi)) &&
+        !(learnState.stepSatisfied && nextSt && nextSt.n.includes(midi))) {
+      mistake = true;
+    }
+  });
+  learnState.mistakeActive = mistake;
+  st.n.forEach(midi => {
+    const idx = midi - midiBase;
+    if (idx >= 0 && idx < NUM_KEYS) {
+      const k = keyByIdx[idx];
+      if (k && !activeNotes.has(midi)) {
+        if (mistake) {
+          k.style.setProperty('--kc', 'red');
+          k.style.setProperty('--kg', 'rgba(220,40,40,0.6)');
+        } else {
+          const orig = KEY_COLORS[idx];
+          k.style.setProperty('--kc', orig.full);
+          k.style.setProperty('--kg', `rgba(${orig.fr},${orig.fg},${orig.fb},${k.classList.contains('bk')?'.7':'.5'})`);
+        }
+      }
+    }
+  });
+  if (learnState.heldTargets.size === st.n.length && !mistake) {
+    learnState.stepSatisfied = true;
+    learnState.readyToAdvance = true;
+  } else {
+    learnState.stepSatisfied = false;
+    learnState.readyToAdvance = false;
+  }
+  if (learnState.stepSatisfied && nextSt) {
+    nextSt.n.forEach(midi => {
+      const idx = midi - midiBase;
+      if (idx >= 0 && idx < NUM_KEYS) { const k = keyByIdx[idx]; if (k) k.classList.add('upcoming'); }
+    });
+  } else if (nextSt) {
+    nextSt.n.forEach(midi => {
+      const idx = midi - midiBase;
+      if (idx >= 0 && idx < NUM_KEYS) { const k = keyByIdx[idx]; if (k) k.classList.remove('upcoming'); }
+    });
+  }
+}
+
+(function learnAnimLoop() {
+  requestAnimationFrame(learnAnimLoop);
+  if (!learnState.active || !learnState.song) return;
+  const st = learnState.song.steps[learnState.stepIdx];
+  if (!st) return;
+  const now = performance.now();
+  let pulse = (Math.sin(now / 150) + 1) / 2 * 0.4 + 0.05;
+  let activeTargets = st.n;
+  let isUpcoming = false;
+  if (learnState.stepSatisfied) {
+    const nextSt = learnState.song.steps[learnState.stepIdx + 1];
+    if (nextSt) {
+      activeTargets = nextSt.n;
+      isUpcoming = true;
+      pulse = (Math.sin(now / 120) + 1) / 2 * 0.6 + 0.2;
+    } else {
+      activeTargets = [];
+    }
+  }
+  for (let i = 0; i < NUM_KEYS; i++) {
+    const midi = midiBase + i;
+    const mIdxs = i < 28 ? [i] : (i === 28 ? [28, 29] : [i + 1]);
+    if (activeTargets.includes(midi)) {
+      if (!isUpcoming && activeNotes.has(midi)) continue;
+      const origC = KEY_COLORS[i];
+      let c = origC;
+      if (isUpcoming) {
+        if (isBlack(midi)) c = {fr:255, fg:180, fb:80};
+        else c = {fr:255, fg:255, fb:255};
+      } else if (learnState.mistakeActive) {
+        c = {fr:220, fg:40, fb:40};
+      }
+      mIdxs.forEach(mIdx => {
+        if (!fadingLEDs.has(mIdx)) {
+          const led = ledEls[mIdx];
+          if (led) {
+            led.style.background = `rgba(${c.fr},${c.fg},${c.fb},${pulse})`;
+            led.style.boxShadow = `0 0 10px 2px rgba(${c.fr},${c.fg},${c.fb},${pulse})`;
+          }
+        }
+      });
+    }
+  }
+})();
+
 // ── Note trigger / release ────────────────────────────────
 function triggerNote(midi,velocity){
   const idx=midi-midiBase;
   if(idx<0||idx>=NUM_KEYS)return;
   activeNotes.set(midi,velocity);activeNoteIdx.set(midi,idx);sustainHeld.delete(midi);
   if(sustainTimeouts.has(midi)){clearTimeout(sustainTimeouts.get(midi));sustainTimeouts.delete(midi);}
-  const c=KEY_COLORS[idx];setLiveColor(c);
-  const k=keyByIdx[idx];if(k)k.classList.add('active');
+
+  let c=KEY_COLORS[idx];
+  if (learnState.active && learnState.song) {
+    const st = learnState.song.steps[learnState.stepIdx];
+    const prevSt = learnState.stepIdx > 0 ? learnState.song.steps[learnState.stepIdx - 1] : null;
+    if (st) {
+      if (st.n.includes(midi)) {
+        learnState.heldTargets.add(midi);
+      } else if (prevSt && prevSt.n.includes(midi)) {
+        // Legato hold — allowed
+      } else {
+        const gb = parseFloat(document.getElementById('brightness').value) || 1;
+        c = {fr:220, fg:40, fb:40, dr:Math.round(220*gb), dg:Math.round(40*gb), db:Math.round(40*gb), css:'red', full:'red'};
+      }
+    }
+  }
+
+  setLiveColor(c);
+  const k=keyByIdx[idx];
+  if(k){
+    k.classList.add('active');
+    if(c.css==='red'){
+      k.style.setProperty('--kc', c.full);
+      k.style.setProperty('--kg', 'rgba(220,40,40,0.6)');
+    }
+  }
 
   const mappedLEDs = idx < 28 ? [idx] : (idx === 28 ? [28, 29] : [idx + 1]);
 
   const briEl = document.getElementById('brightness');
   const maxB = briEl ? parseFloat(briEl.value) : 1.0;
 
-  // Velocity-mapped LED
   const vf=(0.12+(velocity/127)*0.88)*maxB;
   const vr=Math.round(c.dr*vf),vg=Math.round(c.dg*vf),vb=Math.round(c.db*vf);
   ledColors[idx]={dr:vr,dg:vg,db:vb};
-  
+
   mappedLEDs.forEach(mIdx => {
     const led=ledEls[mIdx];
     if(led){
@@ -836,11 +1310,9 @@ function triggerNote(midi,velocity){
   spawnParticles(idx,velocity);
   if(audioReady&&piano)try{piano.triggerAttack(toTone(midi),Tone.now(),velocity/127);}catch(e){}
 
-  // Header display
   const finalNote = noteName(midi).replace(/([0-9]+)$/,' $1');
   document.getElementById('statVel').textContent=velocity;
-  
-  // Big Center display
+
   const currentNoteEl = document.getElementById('currentNote');
   if (currentNoteEl) {
     currentNoteEl.textContent = finalNote;
@@ -850,7 +1322,7 @@ function triggerNote(midi,velocity){
   }
   const noteLabelEl = document.getElementById('noteLabel');
   if (noteLabelEl) noteLabelEl.textContent = `midi ${midi} · vel ${velocity}`;
-  
+
   const nd = document.getElementById('noteDisplay');
   if (nd) {
     const intensity = velocity / 127;
@@ -861,6 +1333,7 @@ function triggerNote(midi,velocity){
   document.getElementById('statActive').textContent=activeNotes.size;
   updatePills();
   mappedLEDs.forEach(mIdx => sendWS({type:'noteOn',note:midi,idx:mIdx,velocity}));
+  if (learnState.active) checkLearningState();
 }
 
 function releaseNote(midi, forceForSustain=false){
@@ -884,13 +1357,31 @@ function releaseNote(midi, forceForSustain=false){
     }, 4000));
     return;
   }
-  
-  const vel = activeNotes.get(midi) || 100;
+
   activeNotes.delete(midi);
   activeNoteIdx.delete(midi);
-  const k=keyByIdx[idx];if(k)k.classList.remove('active');
+
+  let didAdvance = false;
+  if (learnState.active && learnState.song) {
+    const st = learnState.song.steps[learnState.stepIdx];
+    if (st && st.n.includes(midi) && learnState.readyToAdvance) {
+      learnState.readyToAdvance = false;
+      learnState.stepSatisfied = false;
+      didAdvance = true;
+    }
+    learnState.heldTargets.delete(midi);
+  }
+
+  const k=keyByIdx[idx];
+  if(k){
+    k.classList.remove('active');
+    // Reset color back in case it was a red error note
+    const origC = KEY_COLORS[idx];
+    k.style.setProperty('--kc', origC.full);
+    k.style.setProperty('--kg', `rgba(${origC.fr},${origC.fg},${origC.fb},${k.classList.contains('bk')?'.7':'.5'})`);
+  }
   if(audioReady&&piano)try{piano.triggerRelease(toTone(midi),Tone.now());}catch(e){}
-  
+
   mappedLEDs.forEach(mIdx => {
     if(fadingLEDs.has(mIdx)){
       cancelAnimationFrame(fadingLEDs.get(mIdx));
@@ -944,6 +1435,19 @@ function releaseNote(midi, forceForSustain=false){
   }
   document.getElementById('statActive').textContent=activeNotes.size;
   updatePills();
+
+  if (didAdvance) {
+    setTimeout(() => {
+      advanceLearnStep(1);
+      const newSt = learnState.song.steps[learnState.stepIdx];
+      if (newSt) {
+        activeNotes.forEach((v, m) => { if (newSt.n.includes(m)) learnState.heldTargets.add(m); });
+        checkLearningState();
+      }
+    }, 10);
+  } else if (learnState.active) {
+    checkLearningState();
+  }
 }
 
 function setSustain(on){
@@ -1125,6 +1629,7 @@ document.getElementById('btnSkip').addEventListener('click',async()=>{
 });
 document.getElementById('btnTestLED').addEventListener('click',testLEDs);
 
+initLearnUI();
 connectWS();
 resizeSpec();
 setTimeout(()=>{scalePiano();},50);
