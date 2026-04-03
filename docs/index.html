@@ -1000,15 +1000,48 @@
       white-space: nowrap;
     }
 
-    .ld-queue-wrap {
+    .ld-queue-container {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin: 0 1rem;
+      position: relative;
+      min-width: 0;
+    }
+
+    .ld-queue-wrap {
       overflow: hidden;
       height: 32px;
       position: relative;
       display: block;
-      margin: 0 1rem;
       mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
       -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+    }
+
+    .ld-scrubber {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 1px;
+      outline: none;
+      cursor: pointer;
+      transition: height 0.1s;
+    }
+
+    .ld-scrubber:hover {
+      height: 4px;
+    }
+
+    .ld-scrubber::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
     }
 
     .ld-queue {
@@ -1248,13 +1281,15 @@
           </div>
           <span class="ld-step" id="ldStep">Step 0 / 0</span>
         </div>
-        <div class="ld-queue-wrap" id="ldQueueWrap">
-          <div class="ld-queue" id="ldQueue"></div>
+        <div class="ld-queue-container">
+          <div class="ld-queue-wrap" id="ldQueueWrap">
+            <div class="ld-queue" id="ldQueue"></div>
+          </div>
+          <input type="range" class="ld-scrubber" id="ldScrubber" min="0" max="0" value="0">
         </div>
         <div class="ld-controls">
-          <button class="ld-btn" id="btnLdPrev">Prev</button>
           <button class="ld-btn" id="btnLdNext">Skip</button>
-          <button class="ld-btn" id="btnLdDemo">▶ Demo</button>
+          <button class="ld-btn" id="btnLdDemo">▶ Play</button>
           <button class="ld-btn" id="btnLdReset">Reset</button>
         </div>
       </div>
@@ -1822,12 +1857,23 @@
       sel.addEventListener('change', () => { if (demoAbortController) stopDemoMode(); loadSong(sel.value); });
       document.getElementById('btnLearnToggle').addEventListener('click', toggleLearnMode);
       document.getElementById('btnLdNext').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); advanceLearnStep(1); });
-      document.getElementById('btnLdPrev').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); advanceLearnStep(-1); });
       document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
       document.getElementById('btnLdReset').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]); });
 
       const midiInput = document.getElementById('midiUpload');
       if (midiInput) midiInput.addEventListener('change', handleMidiUpload);
+      
+      const scrubber = document.getElementById('ldScrubber');
+      if (scrubber) {
+        scrubber.addEventListener('input', (e) => {
+          if (!learnState.song) return;
+          if (demoAbortController) stopDemoMode();
+          learnState.stepIdx = parseInt(e.target.value, 10);
+          learnState.heldTargets.clear();
+          learnState.stepSatisfied = false;
+          renderLearnStep();
+        });
+      }
     }
     function toggleLearnMode() {
       learnState.active = !learnState.active;
@@ -1921,7 +1967,7 @@
       if (demoAbortController) {
         stopDemoMode();
       } else {
-        btn.textContent = '⏹ Stop';
+        btn.textContent = '⏸ Pause';
         btn.classList.add('active');
         demoAbortController = new AbortController();
         await playDemo(demoAbortController.signal);
@@ -1932,23 +1978,25 @@
       if (demoAbortController) demoAbortController.abort();
       demoAbortController = null;
       const btn = document.getElementById('btnLdDemo');
-      if (btn) { btn.textContent = '▶ Demo'; btn.classList.remove('active'); }
+      if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('active'); }
 
       // Clean up ghost notes
       for (let midi of activeNotes.keys()) {
         releaseNote(midi);
       }
-      loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]);
+      renderLearnStep();
     }
     async function playDemo(signal) {
       if (!learnState.song) return;
-      loadSong(learnState.song.id); // clean start
+      learnState.heldTargets.clear();
+      learnState.stepSatisfied = false;
+      renderLearnStep();
       const playLength = learnState.song.steps.length;
 
       const sleep = (ms) => new Promise(r => setTimeout(r, ms));
       await sleep(500);
 
-      for (let i = 0; i < playLength; i++) {
+      for (let i = learnState.stepIdx; i < playLength; i++) {
         if (signal.aborted) return;
         const st = learnState.song.steps[i];
         const nextSt = learnState.song.steps[i + 1];
@@ -2001,6 +2049,11 @@
           qEl.appendChild(d);
         });
       }
+      const scrubber = document.getElementById('ldScrubber');
+      if (scrubber) {
+        scrubber.max = (learnState.song.steps.length - 1).toString();
+        scrubber.value = "0";
+      }
       renderLearnStep();
     }
     function queueCenter() {
@@ -2027,6 +2080,9 @@
       clearLearnVisuals();
       const st = learnState.song.steps[learnState.stepIdx];
       document.getElementById('ldStep').textContent = `Step ${learnState.stepIdx + 1} / ${learnState.song.steps.length}`;
+
+      const scrubber = document.getElementById('ldScrubber');
+      if (scrubber) scrubber.value = learnState.stepIdx.toString();
 
       const qEl = document.getElementById('ldQueue');
       if (qEl) {
