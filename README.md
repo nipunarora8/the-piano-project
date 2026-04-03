@@ -19,7 +19,8 @@ Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS28
 - **Interactive Learning Mode**: A sophisticated step-timeline engine with "Wait-to-Advance" logic (advances on key release). Perfectly handles fast, repeated, and legato playing while highlighting mistakes and queuing upcoming notes.
 - **Light Guide keyboard map**: While in Learning Mode, the LED strip maintains a persistent, dim idle glow to map out the physical keyboard (dim cool-blue for black keys, dim warm-white for white keys). Upcoming targets are clearly differentiated, pulsing pure white for white keys and warm-orange for black keys.
 - **Demo Mode & MIDI Import**: Drop any standard `.mid` file into the app and it instantly digests it into playable, native learning steps without a server. Hit Play Demo and the system acts as an autopilot, lighting up the physical LED strip and playing audio at original precision tempo.
-- **Built-in Tracks**: Includes Für Elise (Full Theme) and B Major Scale demos optimized for the new visual guidance system.
+- **Built-in Tracks**: Includes Für Elise, Ode to Joy, Mary Had a Little Lamb, Hallelujah (Chords), and B Major Scale demos optimized for the new visual guidance system.
+- **Audio Octave / Transpose**: A decoupled audio/visual backend that allows you to transpose the audio engine and learning logic to different octaves, while rigidly keeping the physical LED strip mapped 1:1 with exactly which physical un-shifted key you hit on your keyboard.
 - **No backend required** *(standalone version)*: The browser talks directly to the ESP32 over USB serial via the **Web Serial API** — no Python server, no WebSocket, nothing to install.
 
 ---
