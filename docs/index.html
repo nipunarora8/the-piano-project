@@ -132,6 +132,14 @@ body::after{
 .hdr-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.15)}
 .hdr-divider{width:1px;height:28px;background:var(--bord);flex-shrink:0}
 
+.header-action-group { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; margin-left: 0.25rem; }
+.cg-label { font-family: 'Space Mono', monospace; font-size: 0.5rem; color: var(--gold); letter-spacing: 0.08em; font-weight: 700; white-space: nowrap; line-height: 1; margin-bottom: -0.1rem; }
+.cg-buttons { display: flex; gap: 0.3rem; }
+.hdr-btn.icon-btn { padding: 0.35rem 0.5rem; display: flex; align-items: center; justify-content: center; }
+.hdr-btn.icon-btn svg { width: 1.1rem; height: 1.1rem; color: var(--fg); }
+.hdr-btn.icon-btn:hover svg { color: var(--gold); }
+.hdr-btn.gold-btn { background: rgba(201,162,39,0.1); border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
 /* ── MAIN ────────────────────────────────── */
 .main{
   flex:1;display:flex;flex-direction:column;align-items:center;
@@ -378,6 +386,77 @@ body::after{
 @keyframes spin{to{transform:rotate(360deg)}}
 .load-prog{flex:1;height:2px;background:var(--bord);border-radius:1px}
 .load-fill{height:100%;width:0%;border-radius:1px;background:var(--gold);transition:width .3s}
+
+/* ── LEARNING DASHBOARD ──────────────────────────────────── */
+.learn-dash {
+  width: 100%; max-width: min(95vw,2400px);
+  background: var(--pan2); border: 1px solid var(--bord);
+  border-radius: 4px; padding: 0.75rem 1.5rem;
+  display: flex; align-items: center; gap: 1.5rem;
+  margin-bottom: -0.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  height: auto; opacity: 1;
+}
+.learn-dash.hidden { height: 0; padding-top: 0; padding-bottom: 0; border-width: 0; opacity: 0; margin-bottom: 0; }
+.ld-info { flex: 1; display: flex; align-items: center; gap: 1rem; }
+.ld-step { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--gold); letter-spacing: 0.1em; font-weight: 700; white-space: nowrap; }
+.ld-queue-wrap {
+  flex: 1; overflow: hidden; height: 32px; position: relative; display: block; margin: 0 1rem;
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+}
+.ld-queue {
+  display: flex; gap: 0.5rem; width: max-content; height: 100%; align-items: center;
+  transition: transform 0.4s cubic-bezier(0.3, 1, 0.4, 1);
+}
+.ld-q-item {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem; padding: 0.2rem 0.6rem;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--bord2);
+  border-radius: 2px; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+  transition: all 0.3s;
+}
+.ld-q-item.current {
+  background: rgba(201,162,39,0.15); border-color: var(--gold); color: var(--gold);
+  transform: scale(1.15); box-shadow: 0 0 15px rgba(201,162,39,0.25);
+}
+.ld-controls { display: flex; gap: 0.5rem; }
+.ld-btn {
+  font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700;
+  padding: 0.4rem 0.8rem; background: transparent; border: 1px solid var(--bord2);
+  color: var(--muted); border-radius: 2px; cursor: pointer; transition: all 0.2s;
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.ld-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(201,162,39,.1); }
+.ld-btn.active { background: var(--gold); color: var(--bg); }
+.wk.pulsing:not(.active) {
+  background: linear-gradient(180deg, var(--kc,#c9a227) 0%, color-mix(in srgb, var(--kc,#c9a227) 18%, #faf5e6) 100%) !important;
+  animation: pulseWk 1.5s infinite ease-in-out;
+}
+.bk.pulsing:not(.active) {
+  background: linear-gradient(180deg, var(--kc,#c9a227) 0%, color-mix(in srgb, var(--kc,#c9a227) 35%, #000) 100%) !important;
+  animation: pulseBk 1.5s infinite ease-in-out;
+}
+.wk.upcoming {
+  --kc: #fff !important; --kg: rgba(255,255,255,0.9) !important;
+  background: linear-gradient(180deg, var(--kc) 0%, color-mix(in srgb, var(--kc) 25%, #faf5e6) 100%) !important;
+  animation: pulseWk 1.2s infinite ease-in-out !important;
+}
+.bk.upcoming {
+  --kc: #fff !important; --kg: rgba(255,255,255,0.9) !important;
+  background: linear-gradient(180deg, var(--kc) 0%, color-mix(in srgb, var(--kc) 40%, #000) 100%) !important;
+  animation: pulseBk 1.2s infinite ease-in-out !important;
+}
+@keyframes pulseWk { 
+  0%   { filter: brightness(0.6) saturate(0.6); box-shadow: 0 0 10px var(--kg); } 
+  50%  { filter: brightness(1.1) saturate(1.2); box-shadow: 0 0 30px var(--kg), 1px 2px 4px rgba(0,0,0,.4); } 
+  100% { filter: brightness(0.6) saturate(0.6); box-shadow: 0 0 10px var(--kg); } 
+}
+@keyframes pulseBk { 
+  0%   { filter: brightness(0.5) saturate(0.6); box-shadow: 0 0 10px var(--kg); } 
+  50%  { filter: brightness(1.2) saturate(1.2); box-shadow: 0 0 35px var(--kg); } 
+  100% { filter: brightness(0.5) saturate(0.6); box-shadow: 0 0 10px var(--kg); } 
+}
 </style>
 </head>
 <body>
@@ -439,14 +518,43 @@ body::after{
     </div>
 
     <div class="hdr-divider"></div>
-    <button class="hdr-btn" id="btnSerial">Connect LED Strip</button>
-    <button class="hdr-btn" id="btnTestLED">Test LEDs</button>
+    <div class="header-action-group">
+      <div class="cg-label">LED STRIP</div>
+      <div class="cg-buttons">
+        <button class="hdr-btn icon-btn" id="btnSerial" title="Connect LED Strip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="16" height="8" x="4" y="6" rx="2"/><path d="M12 14v8"/></svg>
+        </button>
+        <button class="hdr-btn icon-btn" id="btnTestLED" title="Test LEDs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5.2 5.2 2.8 2.8"/><path d="m18.8 18.8-2.8-2.8"/><path d="m5.2 18.8 2.8-2.8"/><path d="m18.8 5.2-2.8 2.8"/><path d="m12 1v4"/><path d="m12 19v4"/><path d="m1 12h4"/><path d="m19 12h4"/></svg>
+        </button>
+      </div>
+    </div>
+    
+    <div class="hdr-divider"></div>
+    <button class="hdr-btn gold-btn" id="btnLearnToggle">[ Learning Mode ]</button>
   </div>
 </header>
 
 <!-- ── MAIN ──────────────────────────────────────────────── -->
 <div class="main">
   <div class="center-col">
+
+    <!-- Learning Dashboard -->
+    <div class="learn-dash hidden" id="learnDash">
+      <div class="ld-info">
+        <select id="songSelect" class="minimal-select"></select>
+        <span class="ld-step" id="ldStep">Step 0 / 0</span>
+      </div>
+      <div class="ld-queue-wrap" id="ldQueueWrap">
+        <div class="ld-queue" id="ldQueue"></div>
+      </div>
+      <div class="ld-controls">
+        <button class="ld-btn" id="btnLdPrev">Prev</button>
+        <button class="ld-btn" id="btnLdNext">Skip</button>
+        <button class="ld-btn" id="btnLdDemo">▶ Demo</button>
+        <button class="ld-btn" id="btnLdReset">Reset</button>
+      </div>
+    </div>
 
     <div class="note-display" id="noteDisplay">
       <div class="current-note idle" id="currentNote">—</div>
@@ -629,7 +737,7 @@ function scalePiano(){
   inner.style.transformOrigin='left top';
   outer.style.height=Math.ceil((14+6+260+22)*currentScale)+'px';
 }
-window.addEventListener('resize',()=>{scalePiano();resizeSpec();});
+window.addEventListener('resize',()=>{scalePiano();resizeSpec();if(typeof queueCenter==='function')queueCenter();});
 
 // ── Particles ─────────────────────────────────────────────
 const pCanvas=document.getElementById('pCanvas');
@@ -720,28 +828,63 @@ let hwDirty = false;
 // ── Serial / Adalight ─────────────────────────────────────
 let serialPort = null, serialWriter = null, serialOk = false, serialBusy = false;
 
+async function executeSerialConnect(port) {
+  try {
+    await port.open({ baudRate: 1000000 });
+    serialPort = port;
+    serialWriter = serialPort.writable.getWriter();
+    serialOk = true;
+    setDot('serial', 'ok', 'serial');
+    setDot('led', 'ok', 'leds');
+    
+    const btn = document.getElementById('btnSerial');
+    if(btn) { btn.title = 'Disconnect LED Strip'; btn.classList.add('gold-btn'); }
+    
+    showToast('LED strip connected');
+    hwLedState.forEach(c => { c[0]=0; c[1]=0; c[2]=0; });
+    hwDirty = true;
+    return true;
+  } catch (e) {
+    console.warn('Execute Serial Connect fallback:', e);
+    return false;
+  }
+}
+
 async function connectSerial() {
   if (!('serial' in navigator)) {
     showToast('Web Serial not supported — use Chrome');
     return;
   }
+  if (serialOk && serialPort) {
+    if(serialWriter) { serialWriter.releaseLock(); serialWriter = null; }
+    await serialPort.close(); serialPort = null;
+    serialOk = false;
+    setDot('serial', '', 'serial');
+    setDot('led', '', 'leds');
+    const btn = document.getElementById('btnSerial');
+    if(btn) { btn.title = 'Connect LED Strip'; btn.classList.remove('gold-btn'); }
+    showToast('LED strip disconnected');
+    return;
+  }
   try {
-    serialPort = await navigator.serial.requestPort();
-    await serialPort.open({ baudRate: 1000000 });
-    serialWriter = serialPort.writable.getWriter();
-    serialOk = true;
-    setDot('serial', 'ok', 'serial');
-    setDot('led', 'ok', 'leds');
-    showToast('LED strip connected');
-    // Send initial blank frame
-    hwLedState.forEach(c => { c[0]=0; c[1]=0; c[2]=0; });
-    hwDirty = true;
+    const port = await navigator.serial.requestPort();
+    await executeSerialConnect(port);
   } catch (e) {
-    if (e.name !== 'NotFoundError') { // user cancelled = no error
+    if (e.name !== 'NotFoundError') { 
       setDot('serial', 'err', 'serial err');
       showToast('Serial failed');
       console.error(e);
     }
+  }
+}
+
+async function autoConnectSerial() {
+  if (!('serial' in navigator)) return;
+  try {
+    const ports = await navigator.serial.getPorts();
+    if (ports.length > 0) await executeSerialConnect(ports[0]);
+  } catch(e) {
+    console.warn("Auto-connect failed:", e);
   }
 }
 
@@ -865,14 +1008,336 @@ async function initAudio(){
 }
 function showLoad(on){document.getElementById('loadBar').classList.toggle('hidden',!on)}
 
+// ── Learning Mode ─────────────────────────────────────────
+const LEARNING_SONGS = {
+  "scale": {
+    name: "C Major Scale",
+    steps: [ {n:[60]}, {n:[62]}, {n:[64]}, {n:[65]}, {n:[67]}, {n:[69]}, {n:[71]}, {n:[72]} ]
+  },
+  "chords": {
+    name: "Pop Chords (C - G - Am - F)",
+    steps: [
+      {n:[60, 64, 67]}, // C
+      {n:[55, 59, 62]}, // G
+      {n:[57, 60, 64]}, // Am
+      {n:[53, 57, 60]}  // F
+    ]
+  },
+  "twinkle": {
+    name: "Twinkle Twinkle",
+    steps: [
+      {n:[60]}, {n:[60]}, {n:[67]}, {n:[67]}, {n:[69]}, {n:[69]}, {n:[67]},
+      {n:[65]}, {n:[65]}, {n:[64]}, {n:[64]}, {n:[62]}, {n:[62]}, {n:[60]}
+    ]
+  }
+};
+let learnState = { active: false, song: null, stepIdx: 0, heldTargets: new Set(), mistakeActive: false, advancing: false, stepSatisfied: false };
+let demoAbortController = null;
+
+function initLearnUI(){
+  const sel=document.getElementById('songSelect');
+  for(const k in LEARNING_SONGS){
+    const opt=document.createElement('option');
+    opt.value=k; opt.textContent=LEARNING_SONGS[k].name;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change',()=>{ if(demoAbortController)stopDemoMode(); loadSong(sel.value); });
+  document.getElementById('btnLearnToggle').addEventListener('click',toggleLearnMode);
+  document.getElementById('btnLdNext').addEventListener('click',()=>{ if(demoAbortController)stopDemoMode(); advanceLearnStep(1); });
+  document.getElementById('btnLdPrev').addEventListener('click',()=>{ if(demoAbortController)stopDemoMode(); advanceLearnStep(-1); });
+  document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
+  document.getElementById('btnLdReset').addEventListener('click',()=>{ if(demoAbortController)stopDemoMode(); loadSong(learnState.song?learnState.song.id:Object.keys(LEARNING_SONGS)[0]); });
+}
+function toggleLearnMode(){
+  learnState.active = !learnState.active;
+  document.getElementById('btnLearnToggle').classList.toggle('active', learnState.active);
+  document.getElementById('learnDash').classList.toggle('hidden', !learnState.active);
+  if(learnState.active){
+    if(!learnState.song) loadSong(Object.keys(LEARNING_SONGS)[0]);
+    else { renderLearnStep(); queueCenter(); }
+  } else {
+    if(demoAbortController) stopDemoMode();
+    clearLearnVisuals();
+  }
+}
+async function toggleDemoMode() {
+  const btn = document.getElementById('btnLdDemo');
+  if(demoAbortController) {
+    stopDemoMode();
+  } else {
+    btn.textContent = '⏹ Stop';
+    btn.classList.add('active');
+    demoAbortController = new AbortController();
+    await playDemo(demoAbortController.signal);
+    if(demoAbortController) stopDemoMode(); // Auto cleanup when finished
+  }
+}
+function stopDemoMode() {
+  if(demoAbortController) demoAbortController.abort();
+  demoAbortController = null;
+  const btn = document.getElementById('btnLdDemo');
+  if(btn) { btn.textContent = '▶ Demo'; btn.classList.remove('active'); }
+  
+  // Clean up ghost notes
+  for(let midi of activeNotes.keys()) {
+    releaseNote(midi);
+  }
+  loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]);
+}
+async function playDemo(signal) {
+  if(!learnState.song) return;
+  loadSong(learnState.song.id); // clean start
+  const playLength = learnState.song.steps.length;
+  
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  await sleep(500);
+
+  for(let i = 0; i < playLength; i++) {
+    if(signal.aborted) return;
+    const st = learnState.song.steps[i];
+    
+    // Press target notes cleanly
+    st.n.forEach(midi => triggerNote(midi, 100));
+    await sleep(450); // Chord duration hold
+    
+    if(signal.aborted) return;
+    
+    // Release organically advances the step via the tracking state machine
+    st.n.forEach(midi => releaseNote(midi));
+    await sleep(150); // Breath before next chord
+    
+    if(signal.aborted) return;
+  }
+  // Let last release resolve visually
+  await sleep(600);
+}
+
+function loadSong(id){
+  learnState.song = LEARNING_SONGS[id];
+  learnState.song.id = id;
+  learnState.stepIdx = 0;
+  learnState.heldTargets.clear();
+  learnState.stepSatisfied = false;
+  
+  const qEl = document.getElementById('ldQueue');
+  if(qEl) {
+    qEl.innerHTML = '';
+    learnState.song.steps.forEach((st, i) => {
+      const d = document.createElement('div');
+      d.className = 'ld-q-item';
+      d.id = `ldq-${i}`;
+      d.textContent = st.n.map(m => noteName(m).replace(/([0-9]+)$/,'$1')).join(' + ');
+      qEl.appendChild(d);
+    });
+  }
+  renderLearnStep();
+}
+function queueCenter(){
+  const qEl = document.getElementById('ldQueue');
+  const currEl = document.getElementById(`ldq-${learnState.stepIdx}`);
+  if(qEl && currEl){
+    const wrapper = document.getElementById('ldQueueWrap');
+    if(wrapper.offsetWidth > 0){
+      const offset = (wrapper.offsetWidth / 2) - currEl.offsetLeft - (currEl.offsetWidth / 2);
+      qEl.style.transform = `translateX(${offset}px)`;
+    }
+  }
+}
+function advanceLearnStep(dir){
+  if(!learnState.song) return;
+  learnState.stepIdx += dir;
+  if(learnState.stepIdx < 0) learnState.stepIdx = 0;
+  if(learnState.stepIdx >= learnState.song.steps.length) learnState.stepIdx = learnState.song.steps.length - 1;
+  learnState.heldTargets.clear();
+  renderLearnStep();
+}
+function renderLearnStep(){
+  if(!learnState.active || !learnState.song) return;
+  clearLearnVisuals();
+  const st = learnState.song.steps[learnState.stepIdx];
+  document.getElementById('ldStep').textContent = `Step ${learnState.stepIdx + 1} / ${learnState.song.steps.length}`;
+  
+  const qEl = document.getElementById('ldQueue');
+  if(qEl) {
+    for(let i=0; i<qEl.children.length; i++){
+      qEl.children[i].classList.toggle('current', i === learnState.stepIdx);
+    }
+  }
+  queueCenter();
+
+  if(!st) return;
+  st.n.forEach(midi => {
+    const idx = midi - midiBase;
+    if(idx>=0 && idx<NUM_KEYS){
+      const k = keyByIdx[idx];
+      if(k) k.classList.add('pulsing');
+    }
+  });
+  
+  checkLearningState();
+}
+function clearLearnVisuals(){
+  for(let i=0; i<NUM_KEYS; i++){
+    const k = keyByIdx[i];
+    if(k) { k.classList.remove('pulsing'); k.classList.remove('upcoming'); }
+    const mIdxs = i < 28 ? [i] : (i === 28 ? [28, 29] : [i + 1]);
+    if(!activeNotes.has(midiBase + i)){
+      mIdxs.forEach(mIdx => {
+        if(!fadingLEDs.has(mIdx)){ // only clear if not actively playing/fading
+          if(ledEls[mIdx]){ ledEls[mIdx].style.background=''; ledEls[mIdx].style.boxShadow=''; ledEls[mIdx].classList.remove('on'); }
+          hwLedState[mIdx]= [0,0,0];
+        }
+      });
+      hwDirty = true;
+    }
+  }
+  learnState.heldTargets.clear();
+}
+
+function checkLearningState(){
+  if(!learnState.active || !learnState.song) return;
+  const st = learnState.song.steps[learnState.stepIdx];
+  if(!st) return;
+
+  let mistake = false;
+  activeNotes.forEach((vel, midi) => {
+    if(!st.n.includes(midi)) mistake = true;
+  });
+  learnState.mistakeActive = mistake;
+
+  st.n.forEach(midi => {
+    const idx = midi - midiBase;
+    if(idx>=0 && idx<NUM_KEYS){
+      const k = keyByIdx[idx];
+      if(k && !activeNotes.has(midi)){
+        if(mistake){
+          k.style.setProperty('--kc', 'red');
+          k.style.setProperty('--kg', 'rgba(220,40,40,0.6)');
+        } else {
+          const orig = KEY_COLORS[idx];
+          k.style.setProperty('--kc', orig.full);
+          k.style.setProperty('--kg', `rgba(${orig.fr},${orig.fg},${orig.fb},${k.classList.contains('bk')?'.7':'.5'})`);
+        }
+      }
+    }
+  });
+
+  if (learnState.heldTargets.size === st.n.length && !mistake) {
+    learnState.stepSatisfied = true;
+  } else if (mistake) {
+    learnState.stepSatisfied = false;
+  }
+
+  const nextSt = learnState.song.steps[learnState.stepIdx + 1];
+  if (learnState.stepSatisfied && nextSt) {
+    nextSt.n.forEach(midi => {
+      const idx = midi - midiBase;
+      if(idx>=0 && idx<NUM_KEYS) {
+        const k = keyByIdx[idx];
+        if(k) k.classList.add('upcoming');
+      }
+    });
+  } else if (nextSt) {
+    nextSt.n.forEach(midi => {
+      const idx = midi - midiBase;
+      if(idx>=0 && idx<NUM_KEYS) {
+        const k = keyByIdx[idx];
+        if(k) k.classList.remove('upcoming');
+      }
+    });
+  }
+
+  if (learnState.stepSatisfied && activeNotes.size === 0) {
+    if(!learnState.advancing){
+      learnState.advancing = true;
+      learnState.stepSatisfied = false;
+      setTimeout(()=>{ advanceLearnStep(1); learnState.advancing = false; }, 10);
+    }
+  }
+}
+
+(function learnAnimLoop(){
+  requestAnimationFrame(learnAnimLoop);
+  if(!learnState.active || !learnState.song) return;
+  const st = learnState.song.steps[learnState.stepIdx];
+  if(!st) return;
+  const now = performance.now();
+  let pulse = (Math.sin(now/150) + 1)/2 * 0.4 + 0.05; // 0.05 to 0.45
+  let hwChanged = false;
+
+  let activeTargets = st.n;
+  let isUpcoming = false;
+  
+  if (learnState.stepSatisfied) {
+     const nextSt = learnState.song.steps[learnState.stepIdx + 1];
+     if (nextSt) {
+         activeTargets = nextSt.n;
+         isUpcoming = true;
+         pulse = (Math.sin(now/120) + 1)/2 * 0.6 + 0.2; // Brighter and faster pulse for upcoming
+     } else {
+         activeTargets = [];
+     }
+  }
+
+  const gb = parseFloat(document.getElementById('brightness').value) || 1;
+
+  activeTargets.forEach(midi => {
+    if(!isUpcoming && activeNotes.has(midi)) return; // Don't pulse if actively held
+    const idx = midi - midiBase;
+    if(idx>=0 && idx<NUM_KEYS){
+      const origC = KEY_COLORS[idx];
+      let c = origC;
+      if (isUpcoming) c = {fr:255, fg:255, fb:255, dr:Math.round(255*gb), dg:Math.round(255*gb), db:Math.round(255*gb)}; 
+      else if (learnState.mistakeActive) c = {fr:220, fg:40, fb:40, dr:Math.round(220*gb), dg:Math.round(40*gb), db:Math.round(40*gb)};
+
+      const mIdxs = idx < 28 ? [idx] : (idx === 28 ? [28, 29] : [idx + 1]);
+      mIdxs.forEach(mIdx => {
+        if(!fadingLEDs.has(mIdx)){
+          const led = ledEls[mIdx];
+          if(led){
+            led.style.background = `rgba(${c.fr},${c.fg},${c.fb},${pulse})`;
+            led.style.boxShadow = `0 0 10px 2px rgba(${c.fr},${c.fg},${c.fb},${pulse})`;
+          }
+          hwLedState[mIdx][0] = Math.round(c.dr * pulse);
+          hwLedState[mIdx][1] = Math.round(c.dg * pulse);
+          hwLedState[mIdx][2] = Math.round(c.db * pulse);
+          hwChanged = true;
+        }
+      });
+    }
+  });
+  if(hwChanged) hwDirty = true;
+})();
+
 // ── Note trigger / release ────────────────────────────────
 function triggerNote(midi,velocity){
   const idx=midi-midiBase;
   if(idx<0||idx>=NUM_KEYS)return;
   activeNotes.set(midi,velocity);activeNoteIdx.set(midi,idx);sustainHeld.delete(midi);
   if(sustainTimeouts.has(midi)){clearTimeout(sustainTimeouts.get(midi));sustainTimeouts.delete(midi);}
-  const c=KEY_COLORS[idx];setLiveColor(c);
-  const k=keyByIdx[idx];if(k)k.classList.add('active');
+  
+  let c=KEY_COLORS[idx];
+  if(learnState.active && learnState.song){
+     const st = learnState.song.steps[learnState.stepIdx];
+     if(st) {
+       if(st.n.includes(midi)){
+         learnState.heldTargets.add(midi);
+       } else {
+         const gb = parseFloat(document.getElementById('brightness').value) || 1;
+         c = {fr:220, fg:40, fb:40, dr:Math.round(220*gb), dg:Math.round(40*gb), db:Math.round(40*gb), css:'red', full:'red'}; // Error red scaled
+       }
+     }
+  }
+  
+  setLiveColor(c);
+  const k=keyByIdx[idx];
+  if(k){
+    k.classList.add('active');
+    if(c.css === 'red'){
+        k.style.setProperty('--kc', c.full);
+        k.style.setProperty('--kg', 'rgba(220,40,40,0.6)');
+    }
+  }
 
   const mappedLEDs = idx < 28 ? [idx] : (idx === 28 ? [28, 29] : [idx + 1]);
 
@@ -921,6 +1386,8 @@ function triggerNote(midi,velocity){
   document.getElementById('statNotes').textContent=noteCount;
   document.getElementById('statActive').textContent=activeNotes.size;
   updatePills();
+  
+  if(learnState.active) checkLearningState();
 }
 
 function releaseNote(midi, forceForSustain=false){
@@ -944,7 +1411,16 @@ function releaseNote(midi, forceForSustain=false){
 
   activeNotes.delete(midi);
   activeNoteIdx.delete(midi);
-  const k=keyByIdx[idx];if(k)k.classList.remove('active');
+  if(learnState.active) learnState.heldTargets.delete(midi);
+  
+  const k=keyByIdx[idx];
+  if(k){
+      k.classList.remove('active');
+      // Reset color back to original in case it was a red error note
+      const origC = KEY_COLORS[idx];
+      k.style.setProperty('--kc', origC.full);
+      k.style.setProperty('--kg', `rgba(${origC.fr},${origC.fg},${origC.fb},${k.classList.contains('bk')?'.7':'.5'})`);
+  }
   if(audioReady&&piano)try{piano.triggerRelease(toTone(midi),Tone.now());}catch(e){}
 
   mappedLEDs.forEach(mIdx => {
@@ -998,6 +1474,8 @@ function releaseNote(midi, forceForSustain=false){
   }
   document.getElementById('statActive').textContent=activeNotes.size;
   updatePills();
+  
+  if(learnState.active) checkLearningState();
 }
 
 function setSustain(on){
@@ -1176,8 +1654,10 @@ document.getElementById('btnSkip').addEventListener('click',async()=>{
 document.getElementById('btnSerial').addEventListener('click', connectSerial);
 document.getElementById('btnTestLED').addEventListener('click', testLEDs);
 
+initLearnUI();
 resizeSpec();
 setTimeout(()=>{scalePiano();},50);
+autoConnectSerial();
 </script>
 </body>
 </html>
