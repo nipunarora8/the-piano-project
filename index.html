@@ -163,10 +163,11 @@ body::after{
   -webkit-mask-image:linear-gradient(90deg,transparent,black 10%,black 90%,transparent);
 }
 .ld-queue{display:flex;gap:0.5rem;width:max-content;height:100%;align-items:center;transition:transform 0.4s cubic-bezier(0.3,1,0.4,1)}
+#wfCanvas{display:block;border-radius:4px 4px 0 0;}
 .ld-q-item{
   font-family:'Space Mono',monospace;font-size:0.65rem;padding:0.2rem 0.6rem;
   background:rgba(255,255,255,0.05);border:1px solid var(--bord2);border-radius:2px;
-  color:var(--muted);white-space:nowrap;flex-shrink:0;transition:all 0.3s;
+  color:var(--muted);white-space:nowrap;flex-shrink:0;transition:all 0.3s;text-align:center;
 }
 .ld-q-item.current{background:rgba(201,162,39,0.15);border-color:var(--gold);color:var(--gold);transform:scale(1.15);box-shadow:0 0 15px rgba(201,162,39,0.25)}
 .ld-controls{display:flex;gap:0.5rem}
@@ -605,6 +606,7 @@ body::after{
         <button class="ld-btn" id="btnLdNext">Skip</button>
         <button class="ld-btn" id="btnLdDemo">▶ Play</button>
         <button class="ld-btn" id="btnLdReset">Reset</button>
+        <button class="ld-btn" id="btnWaterfall">≋ Waterfall</button>
       </div>
     </div>
 
@@ -638,6 +640,7 @@ body::after{
           LED Strip — 62 LEDs
         </span>
       </div>
+      <canvas id="wfCanvas" style="display:none;"></canvas>
       <div class="piano-scale-outer" id="pianoOuter">
         <div id="pianoInner">
           <div class="led-strip" id="ledStrip"></div>
@@ -814,7 +817,7 @@ function scalePiano(){
   inner.style.transformOrigin='left top';
   outer.style.height=Math.ceil((14+6+260+22)*currentScale)+'px';
 }
-window.addEventListener('resize',()=>{scalePiano();resizeSpec();if(typeof queueCenter==='function')queueCenter();});
+window.addEventListener('resize',()=>{scalePiano();resizeSpec();resizeAndAlignWfCanvas();if(typeof queueCenter==='function')queueCenter();});
 
 // ── Particles ─────────────────────────────────────────────
 const pCanvas=document.getElementById('pCanvas');
@@ -976,70 +979,159 @@ function showLoad(on){document.getElementById('loadBar').classList.toggle('hidde
 const LEARNING_SONGS = {
   "scale": {
     name: "C Major Scale",
-    steps: [{n:[60]},{n:[62]},{n:[64]},{n:[65]},{n:[67]},{n:[69]},{n:[71]},{n:[72]}]
+    steps: [{n:[60],dur:0.5},{n:[62],dur:0.5},{n:[64],dur:0.5},{n:[65],dur:0.5},{n:[67],dur:0.5},{n:[69],dur:0.5},{n:[71],dur:0.5},{n:[72],dur:0.5}]
   },
   "chords": {
     name: "Pop Chords (C - G - Am - F)",
-    steps: [{n:[60,64,67]},{n:[55,59,62]},{n:[57,60,64]},{n:[53,57,60]}]
+    steps: [{n:[60,64,67],dur:1.0},{n:[55,59,62],dur:1.0},{n:[57,60,64],dur:1.0},{n:[53,57,60],dur:1.0}]
   },
   "twinkle": {
     name: "Twinkle Twinkle",
     steps: [
-      {n:[60]},{n:[60]},{n:[67]},{n:[67]},{n:[69]},{n:[69]},{n:[67]},
-      {n:[65]},{n:[65]},{n:[64]},{n:[64]},{n:[62]},{n:[62]},{n:[60]}
+      {n:[60],dur:0.5},{n:[60],dur:0.5},{n:[67],dur:0.5},{n:[67],dur:0.5},{n:[69],dur:0.5},{n:[69],dur:0.5},{n:[67],dur:1.0},
+      {n:[65],dur:0.5},{n:[65],dur:0.5},{n:[64],dur:0.5},{n:[64],dur:0.5},{n:[62],dur:0.5},{n:[62],dur:0.5},{n:[60],dur:1.0}
     ]
   },
   "furelise": {
     name: "Für Elise (Full Theme)",
     steps: [
-      // Theme 1
-      {n:[76]},{n:[75]},{n:[76]},{n:[75]},{n:[76]},{n:[71]},{n:[74]},{n:[72]},{n:[69]},
-      // Bridge 1
-      {n:[60]},{n:[64]},{n:[69]},{n:[71]},
-      // Bridge 2
-      {n:[64]},{n:[68]},{n:[71]},{n:[72]},
-      // Theme 2
-      {n:[64]},{n:[76]},{n:[75]},{n:[76]},{n:[75]},{n:[76]},{n:[71]},{n:[74]},{n:[72]},{n:[69]},
+      // Theme 1 — sixteenth × 5, eighth × 3, quarter × 1
+      {n:[76],dur:0.2},{n:[75],dur:0.2},{n:[76],dur:0.2},{n:[75],dur:0.2},{n:[76],dur:0.2},{n:[71],dur:0.4},{n:[74],dur:0.4},{n:[72],dur:0.4},{n:[69],dur:0.8},
+      // Bridge 1 — ascending quarters
+      {n:[60],dur:0.4},{n:[64],dur:0.4},{n:[69],dur:0.4},{n:[71],dur:0.4},
+      // Bridge 2 — ascending quarters
+      {n:[64],dur:0.4},{n:[68],dur:0.4},{n:[71],dur:0.4},{n:[72],dur:0.4},
+      // Theme 2 — pickup eighth + motif repeat
+      {n:[64],dur:0.4},{n:[76],dur:0.2},{n:[75],dur:0.2},{n:[76],dur:0.2},{n:[75],dur:0.2},{n:[76],dur:0.2},{n:[71],dur:0.4},{n:[74],dur:0.4},{n:[72],dur:0.4},{n:[69],dur:0.8},
       // Bridge 3
-      {n:[60]},{n:[64]},{n:[69]},{n:[71]},
+      {n:[60],dur:0.4},{n:[64],dur:0.4},{n:[69],dur:0.4},{n:[71],dur:0.4},
       // Ending
-      {n:[64]},{n:[72]},{n:[71]},{n:[69]}
+      {n:[64],dur:0.4},{n:[72],dur:0.4},{n:[71],dur:0.4},{n:[69],dur:0.8}
     ]
   },
   "ode": {
     name: "Ode to Joy (Beethoven)",
     steps: [
-      { n: [64] }, { n: [64] }, { n: [65] }, { n: [67] }, { n: [67] }, { n: [65] }, { n: [64] }, { n: [62] },
-      { n: [60] }, { n: [60] }, { n: [62] }, { n: [64] }, { n: [64] }, { n: [62] }, { n: [62] }
+      { n: [64], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [65], dur: 0.5 }, { n: [67], dur: 0.5 }, { n: [67], dur: 0.5 }, { n: [65], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [62], dur: 0.5 },
+      { n: [60], dur: 0.5 }, { n: [60], dur: 0.5 }, { n: [62], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [64], dur: 0.75 }, { n: [62], dur: 0.75 }, { n: [62], dur: 1.0 }
     ]
   },
   "mary": {
     name: "Mary Had a Little Lamb",
     steps: [
-      { n: [64] }, { n: [62] }, { n: [60] }, { n: [62] }, { n: [64] }, { n: [64] }, { n: [64] },
-      { n: [62] }, { n: [62] }, { n: [62] }, { n: [64] }, { n: [67] }, { n: [67] }
+      { n: [64], dur: 0.5 }, { n: [62], dur: 0.5 }, { n: [60], dur: 0.5 }, { n: [62], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [64], dur: 0.75 },
+      { n: [62], dur: 0.5 }, { n: [62], dur: 0.5 }, { n: [62], dur: 0.75 }, { n: [64], dur: 0.5 }, { n: [67], dur: 0.5 }, { n: [67], dur: 1.0 }
     ]
   },
   "hallelujah": {
     name: "Hallelujah (Chords)",
     steps: [
-      { n: [60, 64, 67] }, // C
-      { n: [57, 60, 64] }, // Am
-      { n: [60, 64, 67] }, // C
-      { n: [57, 60, 64] }, // Am
-      { n: [53, 57, 60] }, // F
-      { n: [55, 59, 62] }, // G
-      { n: [60, 64, 67] }, // C
-      { n: [55, 59, 62] }  // G
+      { n: [60, 64, 67], dur: 1.0 }, // C
+      { n: [57, 60, 64], dur: 1.0 }, // Am
+      { n: [60, 64, 67], dur: 1.0 }, // C
+      { n: [57, 60, 64], dur: 1.0 }, // Am
+      { n: [53, 57, 60], dur: 1.0 }, // F
+      { n: [55, 59, 62], dur: 1.0 }, // G
+      { n: [60, 64, 67], dur: 1.0 }, // C
+      { n: [55, 59, 62], dur: 1.0 }  // G
     ]
   },
   "bmajor": {
     name: "B Major Scale",
-    steps: [{n:[59]},{n:[61]},{n:[63]},{n:[64]},{n:[66]},{n:[68]},{n:[70]},{n:[71]}]
+    steps: [{n:[59],dur:0.5},{n:[61],dur:0.5},{n:[63],dur:0.5},{n:[64],dur:0.5},{n:[66],dur:0.5},{n:[68],dur:0.5},{n:[70],dur:0.5},{n:[71],dur:0.5}]
   }
 };
 let learnState = {active:false, song:null, stepIdx:0, heldTargets:new Set(), mistakeActive:false, readyToAdvance:false, stepSatisfied:false};
 let demoAbortController = null;
+let waterfallMode = false, wfCtx = null, wfLastStepIdx = -1;
+let wfSlide = 0, wfSlideTarget = 0, wfSlideStart = 0;
+const WF_HEIGHT = 260, WF_PX_PER_SEC = 160, WF_GAP = 5, WF_ANIM_MS = 280;
+
+function resizeAndAlignWfCanvas() {
+  const canvas = document.getElementById('wfCanvas');
+  if (!canvas || !waterfallMode) return;
+  canvas.width  = Math.round(kbNatural * currentScale);
+  canvas.height = WF_HEIGHT;
+  wfCtx = canvas.getContext('2d');
+}
+
+function toggleWaterfall() {
+  waterfallMode = !waterfallMode;
+  const canvas = document.getElementById('wfCanvas');
+  const btn = document.getElementById('btnWaterfall');
+  canvas.style.display = waterfallMode ? 'block' : 'none';
+  btn.style.background  = waterfallMode ? 'rgba(201,162,39,0.2)' : '';
+  btn.style.borderColor = waterfallMode ? 'var(--gold)' : '';
+  btn.style.color       = waterfallMode ? 'var(--gold)' : '';
+  document.querySelector('.spec-panel').style.display = waterfallMode ? 'none' : '';
+  if (waterfallMode) { wfLastStepIdx = -1; wfSlide = 0; resizeAndAlignWfCanvas(); }
+}
+
+function drawWaterfall() {
+  const canvas = document.getElementById('wfCanvas');
+  if (!canvas || !learnState.song) return;
+  if (!wfCtx) wfCtx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const steps = learnState.song.steps;
+  const scale = currentScale;
+
+  if (learnState.stepIdx !== wfLastStepIdx) {
+    const prevSt = steps[wfLastStepIdx >= 0 ? wfLastStepIdx : learnState.stepIdx];
+    wfSlideTarget = prevSt ? ((prevSt.dur || 0.45) * WF_PX_PER_SEC + WF_GAP) : 0;
+    wfSlide = -wfSlideTarget;
+    wfSlideStart = performance.now();
+    wfLastStepIdx = learnState.stepIdx;
+  }
+
+  if (wfSlide !== 0) {
+    const t = Math.min(1, (performance.now() - wfSlideStart) / WF_ANIM_MS);
+    const ease = 1 - Math.pow(1 - t, 3);
+    wfSlide = t >= 1 ? 0 : -wfSlideTarget * (1 - ease);
+  }
+
+  wfCtx.clearRect(0, 0, W, H);
+  const bg = wfCtx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, 'rgba(0,0,0,0.6)');
+  bg.addColorStop(1, 'rgba(0,0,0,0.15)');
+  wfCtx.fillStyle = bg;
+  wfCtx.fillRect(0, 0, W, H);
+
+  let yBottom = H + wfSlide;
+  for (let i = learnState.stepIdx; i < steps.length; i++) {
+    const st = steps[i];
+    const blockH = Math.max(8, (st.dur || 0.45) * WF_PX_PER_SEC);
+    const dist = i - learnState.stepIdx;
+    const alpha = Math.max(0.12, 0.88 - dist * 0.16);
+    const yTop = yBottom - blockH;
+    if (yTop > H) { yBottom -= blockH + WF_GAP; continue; }
+    if (yBottom < 0) break;
+
+    st.n.forEach(midi => {
+      const idx = midi - MIDI_START;
+      if (idx < 0 || idx >= NUM_KEYS) return;
+      const bk = isBlack(midi);
+      const r = bk ? 255 : 255, g = bk ? 190 : 255, b = bk ? 120 : 255;
+      const fullKw = (bk ? 22 : WK_W) * scale;
+      const kw = fullKw * 0.55;
+      const cx = keyCenterX[idx] * scale;
+      const x  = cx - kw / 2;
+      wfCtx.shadowColor = `rgba(${r},${g},${b},0.8)`;
+      wfCtx.shadowBlur  = dist === 0 ? 10 : 5;
+      wfCtx.fillStyle   = `rgba(${r},${g},${b},${alpha})`;
+      wfCtx.beginPath();
+      wfCtx.roundRect(x, yTop, kw, blockH, [3, 3, 0, 0]);
+      wfCtx.fill();
+      wfCtx.shadowBlur = 0;
+    });
+    yBottom -= blockH + WF_GAP;
+  }
+
+  const topFade = wfCtx.createLinearGradient(0, 0, 0, 36);
+  topFade.addColorStop(0, 'rgba(0,0,0,0.75)');
+  topFade.addColorStop(1, 'rgba(0,0,0,0)');
+  wfCtx.fillStyle = topFade;
+  wfCtx.fillRect(0, 0, W, 36);
+}
 
 function initLearnUI() {
   const sel = document.getElementById('songSelect');
@@ -1053,6 +1145,7 @@ function initLearnUI() {
   document.getElementById('btnLdNext').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); advanceLearnStep(1); });
   document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
   document.getElementById('btnLdReset').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]); });
+  document.getElementById('btnWaterfall').addEventListener('click', toggleWaterfall);
   const midiInput = document.getElementById('midiUpload');
   if (midiInput) midiInput.addEventListener('change', handleMidiUpload);
   
@@ -1193,10 +1286,15 @@ function loadSong(id) {
   const qEl = document.getElementById('ldQueue');
   if (qEl) {
     qEl.innerHTML = '';
+    const maxDur = Math.max(...learnState.song.steps.map(s => s.dur || 0));
+    learnState.song.maxDur = maxDur;
     learnState.song.steps.forEach((st, i) => {
       const d = document.createElement('div');
       d.className = 'ld-q-item'; d.id = `ldq-${i}`;
       d.textContent = st.n.map(m => noteName(m).replace(/([0-9]+)$/, '$1')).join(' + ');
+      if (maxDur > 0 && st.dur) {
+        d.style.minWidth = (2 + (st.dur / maxDur) * 4) + 'rem';
+      }
       qEl.appendChild(d);
     });
   }
@@ -1361,6 +1459,7 @@ function checkLearningState() {
       });
     }
   }
+  if (waterfallMode) drawWaterfall();
 })();
 
 // ── Note trigger / release ────────────────────────────────
