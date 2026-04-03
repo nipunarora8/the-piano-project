@@ -16,6 +16,8 @@ Designed around an **M-Audio Keystation 61 MK3** and an **ESP32** driving a WS28
 - **Hardware-Synchronized LEDs**: Drives a physical LED strip where colors and brightness map precisely to what you play. Included custom key-mapping (E5 split) to seamlessly align uniform LED strips with piano key gaps.
 - **Acoustic Sustain Simulation**: Holding the sustain pedal (MIDI CC 64) keeps notes ringing. When you release a sustained key, the physical LEDs gracefully fade out over 4 seconds, perfectly mimicking the natural decay of a piano string.
 - **Live Customization Settings**: Tweak the aesthetic on the fly using the minimalist header controls. Instantly switch between custom-curated LED colormaps, or use the global LED brightness slider to dim the lights for night-time playing without losing relative velocity dynamics.
+- **Interactive Learning Mode**: A sophisticated step-timeline engine that waits for you to correctly play target chords before advancing, highlighting mistakes in red, and queuing upcoming notes in white across the hardware strip.
+- **Demo Mode & MIDI Import**: Drop any standard `.mid` file into the app and it instantly digests it into playable, native learning steps without a server. Hit Play Demo and the system acts as an autopilot, lighting up the physical LED strip and playing audio at original precision tempo.
 - **No backend required**: The browser talks directly to the ESP32 over USB serial via the **Web Serial API** — no Python server, no WebSocket, nothing to install.
 
 ---

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/tone@14/build/Tone.js"></script>
+<script src="https://unpkg.com/@tonejs/midi"></script>
 <style>
 :root{
   --bg:   #0c0b09;
@@ -542,7 +543,13 @@ body::after{
     <!-- Learning Dashboard -->
     <div class="learn-dash hidden" id="learnDash">
       <div class="ld-info">
-        <select id="songSelect" class="minimal-select"></select>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <select id="songSelect" class="minimal-select"></select>
+          <label class="ld-btn" for="midiUpload" title="Import MIDI File" style="cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0.35rem 0.5rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </label>
+          <input type="file" id="midiUpload" accept=".mid,.midi" style="display:none;">
+        </div>
         <span class="ld-step" id="ldStep">Step 0 / 0</span>
       </div>
       <div class="ld-queue-wrap" id="ldQueueWrap">
@@ -1047,6 +1054,9 @@ function initLearnUI(){
   document.getElementById('btnLdPrev').addEventListener('click',()=>{ if(demoAbortController)stopDemoMode(); advanceLearnStep(-1); });
   document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
   document.getElementById('btnLdReset').addEventListener('click',()=>{ if(demoAbortController)stopDemoMode(); loadSong(learnState.song?learnState.song.id:Object.keys(LEARNING_SONGS)[0]); });
+  
+  const midiInput = document.getElementById('midiUpload');
+  if(midiInput) midiInput.addEventListener('change', handleMidiUpload);
 }
 function toggleLearnMode(){
   learnState.active = !learnState.active;
@@ -1060,6 +1070,81 @@ function toggleLearnMode(){
     clearLearnVisuals();
   }
 }
+
+async function handleMidiUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const ToneMidi = typeof Midi === "undefined" ? window.Midi : Midi;
+    const midiData = new ToneMidi(arrayBuffer);
+    
+    const allNotes = [];
+    midiData.tracks.forEach(track => {
+      if (track.channel === 9) return; // Ignore DRUMS
+      track.notes.forEach(note => {
+        allNotes.push(note);
+      });
+    });
+    
+    if (allNotes.length === 0) {
+      showToast("No playable piano notes found in MIDI.");
+      return;
+    }
+    
+    allNotes.sort((a,b) => a.time - b.time);
+    
+    const steps = [];
+    let currentStep = null;
+    const EPSILON = 0.06; // 60ms discrete grouping window
+    
+    allNotes.forEach(note => {
+      let m = Math.round(note.midi);
+      while (m < 48 && m > 12) m += 12; // Octave up to bounds
+      while (m > 108 && m < 127) m -= 12; // Octave down to bounds
+      if(m < 48) m = 48; // final safety cap
+      if(m > 108) m = 108; // final safety cap
+
+      if (!currentStep || (note.time - currentStep.time > EPSILON)) {
+        currentStep = { n: [m], time: note.time, dur: note.duration };
+        steps.push(currentStep);
+      } else {
+        if (!currentStep.n.includes(m)) {
+          currentStep.n.push(m);
+        }
+        currentStep.dur = Math.max(currentStep.dur || 0, note.duration);
+      }
+    });
+    
+    const newId = 'custom_' + Date.now();
+    let name = midiData.header.name || file.name.replace(/\.mid[i]?$/i, '');
+    if(!name || name.trim() === '') name = "Imported Song";
+    
+    LEARNING_SONGS[newId] = {
+      name: "✍ " + name,
+      steps: steps
+    };
+    
+    const sel = document.getElementById('songSelect');
+    const opt = document.createElement('option');
+    opt.value = newId;
+    opt.textContent = LEARNING_SONGS[newId].name;
+    sel.appendChild(opt);
+    
+    sel.value = newId;
+    if(demoAbortController) stopDemoMode();
+    loadSong(newId);
+    showToast(`📝 Imported ${steps.length} learning steps!`);
+    
+  } catch (error) {
+    console.error("MIDI import error:", error);
+    showToast("Error parsing MIDI file");
+  } finally {
+    e.target.value = '';
+  }
+}
+
 async function toggleDemoMode() {
   const btn = document.getElementById('btnLdDemo');
   if(demoAbortController) {
@@ -1095,17 +1180,32 @@ async function playDemo(signal) {
   for(let i = 0; i < playLength; i++) {
     if(signal.aborted) return;
     const st = learnState.song.steps[i];
+    const nextSt = learnState.song.steps[i+1];
     
     // Press target notes cleanly
     st.n.forEach(midi => triggerNote(midi, 100));
-    await sleep(450); // Chord duration hold
     
+    // Dynamic pacing calculation
+    let holdMs = (st.dur || 0.45) * 1000;
+    let timeUntilNext = 600; // hardcoded fallback speed
+    if (nextSt && typeof nextSt.time !== 'undefined' && typeof st.time !== 'undefined') {
+       timeUntilNext = (nextSt.time - st.time) * 1000;
+    }
+    
+    // Ensure release has physical time to register before next hit
+    if (holdMs > timeUntilNext - 20) holdMs = timeUntilNext - 20;
+    if (holdMs <= 0) holdMs = 10;
+    let breathMs = timeUntilNext - holdMs;
+
+    await sleep(holdMs);
     if(signal.aborted) return;
     
     // Release organically advances the step via the tracking state machine
     st.n.forEach(midi => releaseNote(midi));
-    await sleep(150); // Breath before next chord
     
+    if (breathMs > 0) {
+      await sleep(breathMs);
+    }
     if(signal.aborted) return;
   }
   // Let last release resolve visually
