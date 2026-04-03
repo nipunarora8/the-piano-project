@@ -244,14 +244,6 @@ body::after{
   text-shadow: 0 0 60px rgba(var(--lc, 201,162,39), 0.5);
 }
 .current-note.idle { color: var(--dim); text-shadow: none; }
-.note-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.8rem;
-  letter-spacing: 0.3em;
-  color: var(--muted);
-  margin-top: 0.25rem;
-  text-transform: uppercase;
-}
 .chord-name {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
@@ -573,7 +565,6 @@ body::after{
     <!-- Note Display -->
     <div class="note-display" id="noteDisplay">
       <div class="current-note idle" id="currentNote">—</div>
-      <div class="note-label" id="noteLabel">awaiting input</div>
       <div class="chord-name" id="chordName">
         <span id="chordL"></span>
         <span class="chord-sep" id="chordSep" style="display:none">·</span>
@@ -614,7 +605,14 @@ body::after{
       <div class="sc"><div class="sc-lbl">Notes</div><div class="sc-val" id="statNotes">0</div></div>
       <div class="sc"><div class="sc-lbl">Active</div><div class="sc-val live" id="statActive">0</div></div>
       <div class="sc"><div class="sc-lbl">Velocity</div><div class="sc-val" id="statVel">—</div></div>
-      <div class="sc"><div class="sc-lbl">Oct Shift</div><div class="sc-val" id="statOct">±0</div></div>
+        <div class="sc">
+          <div class="sc-lbl">Audio Octave</div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+            <button class="mbtn ghost" style="width:auto; padding:0.1rem 0.4rem; margin:0; min-width:unset; font-size:1.2rem; cursor:pointer;" onclick="manAudioTranspose(-12)">−</button>
+            <div class="sc-val" id="statOct">±0</div>
+            <button class="mbtn ghost" style="width:auto; padding:0.1rem 0.4rem; margin:0; min-width:unset; font-size:1.2rem; cursor:pointer;" onclick="manAudioTranspose(12)">+</button>
+          </div>
+        </div>
       <div class="sc"><div class="sc-lbl">Sustain</div><div class="sc-val" id="statSustain">off</div></div>
     </div>
 
@@ -868,6 +866,11 @@ function clearLiveColor(){
 }
 
 // ── Octave shift ──────────────────────────────────────────
+let audioTranspose = 0;
+window.manAudioTranspose = function(delta) {
+  audioTranspose += delta;
+  document.getElementById('statOct').textContent = (audioTranspose > 0 ? '+' : '') + (audioTranspose / 12);
+};
 function autoAdjustBase(midi){
   if(midi>=midiBase&&midi<midiBase+NUM_KEYS)return;
   let b=midiBase;
@@ -882,9 +885,6 @@ function setMidiBase(nb){
     if(!m){m=document.createElement('div');m.className='oct-mark';el.appendChild(m);}
     m.textContent=noteName(midiBase+i);
   }
-  const s=Math.round((midiBase-MIDI_START)/12);
-  document.getElementById('statOct').textContent=s===0?'±0':(s>0?`+${s}`:`${s}`);
-  showToast(`Octave ${s>=0?'+':''}${s}`);
 }
 
 // ── Audio ─────────────────────────────────────────────────
@@ -940,12 +940,45 @@ const LEARNING_SONGS = {
   "furelise": {
     name: "Für Elise (Full Theme)",
     steps: [
-      {n:[64]},{n:[63]},{n:[64]},{n:[63]},{n:[64]},{n:[59]},{n:[62]},{n:[60]},{n:[57]},
-      {n:[48]},{n:[52]},{n:[57]},{n:[59]},
-      {n:[52]},{n:[56]},{n:[59]},{n:[60]},
-      {n:[52]},{n:[64]},{n:[63]},{n:[64]},{n:[63]},{n:[64]},{n:[59]},{n:[62]},{n:[60]},{n:[57]},
-      {n:[48]},{n:[52]},{n:[57]},{n:[59]},
-      {n:[52]},{n:[60]},{n:[59]},{n:[57]}
+      // Theme 1
+      {n:[76]},{n:[75]},{n:[76]},{n:[75]},{n:[76]},{n:[71]},{n:[74]},{n:[72]},{n:[69]},
+      // Bridge 1
+      {n:[60]},{n:[64]},{n:[69]},{n:[71]},
+      // Bridge 2
+      {n:[64]},{n:[68]},{n:[71]},{n:[72]},
+      // Theme 2
+      {n:[64]},{n:[76]},{n:[75]},{n:[76]},{n:[75]},{n:[76]},{n:[71]},{n:[74]},{n:[72]},{n:[69]},
+      // Bridge 3
+      {n:[60]},{n:[64]},{n:[69]},{n:[71]},
+      // Ending
+      {n:[64]},{n:[72]},{n:[71]},{n:[69]}
+    ]
+  },
+  "ode": {
+    name: "Ode to Joy (Beethoven)",
+    steps: [
+      { n: [64] }, { n: [64] }, { n: [65] }, { n: [67] }, { n: [67] }, { n: [65] }, { n: [64] }, { n: [62] },
+      { n: [60] }, { n: [60] }, { n: [62] }, { n: [64] }, { n: [64] }, { n: [62] }, { n: [62] }
+    ]
+  },
+  "mary": {
+    name: "Mary Had a Little Lamb",
+    steps: [
+      { n: [64] }, { n: [62] }, { n: [60] }, { n: [62] }, { n: [64] }, { n: [64] }, { n: [64] },
+      { n: [62] }, { n: [62] }, { n: [62] }, { n: [64] }, { n: [67] }, { n: [67] }
+    ]
+  },
+  "hallelujah": {
+    name: "Hallelujah (Chords)",
+    steps: [
+      { n: [60, 64, 67] }, // C
+      { n: [57, 60, 64] }, // Am
+      { n: [60, 64, 67] }, // C
+      { n: [57, 60, 64] }, // Am
+      { n: [53, 57, 60] }, // F
+      { n: [55, 59, 62] }, // G
+      { n: [60, 64, 67] }, // C
+      { n: [55, 59, 62] }  // G
     ]
   },
   "bmajor": {
@@ -1262,14 +1295,16 @@ function triggerNote(midi,velocity){
   activeNotes.set(midi,velocity);activeNoteIdx.set(midi,idx);sustainHeld.delete(midi);
   if(sustainTimeouts.has(midi)){clearTimeout(sustainTimeouts.get(midi));sustainTimeouts.delete(midi);}
 
+  const effectiveMidi = midi + audioTranspose;
+
   let c=KEY_COLORS[idx];
   if (learnState.active && learnState.song) {
     const st = learnState.song.steps[learnState.stepIdx];
     const prevSt = learnState.stepIdx > 0 ? learnState.song.steps[learnState.stepIdx - 1] : null;
     if (st) {
-      if (st.n.includes(midi)) {
-        learnState.heldTargets.add(midi);
-      } else if (prevSt && prevSt.n.includes(midi)) {
+      if (st.n.includes(effectiveMidi)) {
+        learnState.heldTargets.add(effectiveMidi);
+      } else if (prevSt && prevSt.n.includes(effectiveMidi)) {
         // Legato hold — allowed
       } else {
         const gb = parseFloat(document.getElementById('brightness').value) || 1;
@@ -1308,9 +1343,9 @@ function triggerNote(midi,velocity){
   });
 
   spawnParticles(idx,velocity);
-  if(audioReady&&piano)try{piano.triggerAttack(toTone(midi),Tone.now(),velocity/127);}catch(e){}
+  if(audioReady&&piano)try{piano.triggerAttack(toTone(effectiveMidi),Tone.now(),velocity/127);}catch(e){}
 
-  const finalNote = noteName(midi).replace(/([0-9]+)$/,' $1');
+  const finalNote = noteName(effectiveMidi).replace(/([0-9]+)$/,' $1');
   document.getElementById('statVel').textContent=velocity;
 
   const currentNoteEl = document.getElementById('currentNote');
@@ -1361,15 +1396,16 @@ function releaseNote(midi, forceForSustain=false){
   activeNotes.delete(midi);
   activeNoteIdx.delete(midi);
 
+  const effectiveMidi = midi + audioTranspose;
   let didAdvance = false;
   if (learnState.active && learnState.song) {
     const st = learnState.song.steps[learnState.stepIdx];
-    if (st && st.n.includes(midi) && learnState.readyToAdvance) {
+    if (st && st.n.includes(effectiveMidi) && learnState.readyToAdvance) {
       learnState.readyToAdvance = false;
       learnState.stepSatisfied = false;
       didAdvance = true;
     }
-    learnState.heldTargets.delete(midi);
+    learnState.heldTargets.delete(effectiveMidi);
   }
 
   const k=keyByIdx[idx];
@@ -1380,7 +1416,7 @@ function releaseNote(midi, forceForSustain=false){
     k.style.setProperty('--kc', origC.full);
     k.style.setProperty('--kg', `rgba(${origC.fr},${origC.fg},${origC.fb},${k.classList.contains('bk')?'.7':'.5'})`);
   }
-  if(audioReady&&piano)try{piano.triggerRelease(toTone(midi),Tone.now());}catch(e){}
+  if(audioReady&&piano)try{piano.triggerRelease(toTone(effectiveMidi),Tone.now());}catch(e){}
 
   mappedLEDs.forEach(mIdx => {
     if(fadingLEDs.has(mIdx)){
@@ -1600,7 +1636,7 @@ async function connectMIDI(){
 }
 function handleMIDI(msg){
   const[st,d1,d2]=msg.data,cmd=st&0xf0;
-  if     (cmd===0x90&&d2>0)                 triggerNote(d1,d2);
+  if     (cmd===0x90&&d2>0)                 { autoAdjustBase(d1); triggerNote(d1,d2); }
   else if(cmd===0x80||(cmd===0x90&&d2===0)) releaseNote(d1);
   else if(cmd===0xb0&&d1===64)              setSustain(d2>=64);
 }
