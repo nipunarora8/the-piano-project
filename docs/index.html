@@ -1111,6 +1111,16 @@
       color: var(--bg);
     }
 
+    /* Easy mode button: teal accent to distinguish from gold */
+    .ld-btn.easy-active {
+      background: rgba(56, 189, 160, 0.18);
+      border-color: #38bda0;
+      color: #38bda0;
+    }
+    .ld-btn.easy-active:hover {
+      background: rgba(56, 189, 160, 0.32);
+    }
+
     .wk.pulsing:not(.active) {
       background: linear-gradient(180deg, var(--kc, #c9a227) 0%, color-mix(in srgb, var(--kc, #c9a227) 18%, #faf5e6) 100%) !important;
       animation: pulseWk 1.5s infinite ease-in-out;
@@ -1297,6 +1307,7 @@
           <button class="ld-btn" id="btnLdNext">Skip</button>
           <button class="ld-btn" id="btnLdDemo">▶ Play</button>
           <button class="ld-btn" id="btnLdReset">Reset</button>
+          <button class="ld-btn" id="btnEasyMode" title="One-hand mode: shows only the melody line">☝ Easy</button>
           <button class="ld-btn" id="btnWaterfall">≋ Waterfall</button>
         </div>
       </div>
@@ -1667,10 +1678,6 @@
     }
 
     // sRGB → linear gamma correction so physical WS2812B LEDs match display colors.
-    // Displays use gamma≈2.2; LEDs are linear. Without this, mid-range greens appear
-    // ~5× too strong on the strip, shifting e.g. orange → yellow.
-    // Green also gets a 0.85× trim: WS2812B green dies are physically brighter than
-    // red/blue at equivalent PWM values, which shifts yellows/yellow-greens toward green.
     const GAMMA_LUT = new Uint8Array(256);
     const GAMMA_LUT_G = new Uint8Array(256);
     for (let i = 0; i < 256; i++) {
@@ -1695,12 +1702,11 @@
       return buf;
     }
 
-    // 40 FPS cap: only write to serial when dirty and ≥25ms since last write
     let hwLastSend = 0;
     async function hwSendFrame() {
       if (!serialOk || !serialWriter || !hwDirty || serialBusy) return;
       const now = performance.now();
-      if (now - hwLastSend < 25) return; // 40 FPS cap — prevents UART buffer overflow
+      if (now - hwLastSend < 25) return;
       serialBusy = true;
       hwDirty = false;
       hwLastSend = now;
@@ -1716,7 +1722,6 @@
         serialBusy = false;
       }
     }
-    // Drive the hw send loop from rAF so it naturally caps near display refresh
     (function hwLoop() { requestAnimationFrame(hwLoop); hwSendFrame(); })();
 
     // ── Live color ────────────────────────────────────────────
@@ -1816,17 +1821,11 @@
       "furelise": {
         name: "Für Elise (Full Theme)",
         steps: [
-          // Theme 1 — sixteenth × 5, eighth × 3, quarter × 1
           { n: [76], dur: 0.2 }, { n: [75], dur: 0.2 }, { n: [76], dur: 0.2 }, { n: [75], dur: 0.2 }, { n: [76], dur: 0.2 }, { n: [71], dur: 0.4 }, { n: [74], dur: 0.4 }, { n: [72], dur: 0.4 }, { n: [69], dur: 0.8 },
-          // Bridge 1 — ascending quarters
           { n: [60], dur: 0.4 }, { n: [64], dur: 0.4 }, { n: [69], dur: 0.4 }, { n: [71], dur: 0.4 },
-          // Bridge 2 — ascending quarters
           { n: [64], dur: 0.4 }, { n: [68], dur: 0.4 }, { n: [71], dur: 0.4 }, { n: [72], dur: 0.4 },
-          // Theme 2 — pickup eighth + motif repeat
           { n: [64], dur: 0.4 }, { n: [76], dur: 0.2 }, { n: [75], dur: 0.2 }, { n: [76], dur: 0.2 }, { n: [75], dur: 0.2 }, { n: [76], dur: 0.2 }, { n: [71], dur: 0.4 }, { n: [74], dur: 0.4 }, { n: [72], dur: 0.4 }, { n: [69], dur: 0.8 },
-          // Bridge 3
           { n: [60], dur: 0.4 }, { n: [64], dur: 0.4 }, { n: [69], dur: 0.4 }, { n: [71], dur: 0.4 },
-          // Ending
           { n: [64], dur: 0.4 }, { n: [72], dur: 0.4 }, { n: [71], dur: 0.4 }, { n: [69], dur: 0.8 }
         ]
       },
@@ -1862,11 +1861,72 @@
         steps: [{ n: [59], dur: 0.5 }, { n: [61], dur: 0.5 }, { n: [63], dur: 0.5 }, { n: [64], dur: 0.5 }, { n: [66], dur: 0.5 }, { n: [68], dur: 0.5 }, { n: [70], dur: 0.5 }, { n: [71], dur: 0.5 }]
       }
     };
+
     let learnState = { active: false, song: null, stepIdx: 0, heldTargets: new Set(), mistakeActive: false, readyToAdvance: false, stepSatisfied: false };
     let demoAbortController = null;
     let waterfallMode = false, wfCtx = null, wfLastStepIdx = -1;
     let wfSlide = 0, wfSlideTarget = 0, wfSlideStart = 0;
     const WF_HEIGHT = 260, WF_PX_PER_SEC = 160, WF_GAP = 5, WF_ANIM_MS = 280;
+
+    // ── Easy Mode ─────────────────────────────────────────────
+    // When active, reduces each step to only the highest note (melody line),
+    // making two-hand songs playable with one hand.
+    let easyModeActive = false;
+
+    function applyEasyMode(steps) {
+      // Melody = highest note per step (standard Western harmony: top voice = melody).
+      return steps.map(st => ({ ...st, n: [Math.max(...st.n)] }));
+    }
+
+    function toggleEasyMode() {
+      if (!learnState.song) return;
+      easyModeActive = !easyModeActive;
+      const btn = document.getElementById('btnEasyMode');
+      btn.classList.toggle('easy-active', easyModeActive);
+      btn.title = easyModeActive
+        ? 'Easy mode ON — showing melody only. Click to restore full song.'
+        : 'One-hand mode: shows only the melody line';
+
+      if (demoAbortController) stopDemoMode();
+
+      // Recompute the displayed steps from the raw stored steps
+      const rawSteps = learnState.song._rawSteps || learnState.song.steps;
+      learnState.song._rawSteps = rawSteps; // ensure raw is always preserved
+      learnState.song.steps = easyModeActive ? applyEasyMode(rawSteps) : rawSteps;
+
+      // Clamp step index in case new steps array is shorter (shouldn't happen, but safe)
+      learnState.stepIdx = Math.min(learnState.stepIdx, learnState.song.steps.length - 1);
+      learnState.heldTargets.clear();
+      learnState.stepSatisfied = false;
+
+      // Rebuild queue UI
+      rebuildQueueUI();
+      renderLearnStep();
+      showToast(easyModeActive ? '☝ Easy mode ON — melody only' : '🎹 Full song restored');
+    }
+
+    function rebuildQueueUI() {
+      const qEl = document.getElementById('ldQueue');
+      if (!qEl || !learnState.song) return;
+      qEl.innerHTML = '';
+      const maxDur = Math.max(...learnState.song.steps.map(s => s.dur || 0));
+      learnState.song.maxDur = maxDur;
+      learnState.song.steps.forEach((st, i) => {
+        const d = document.createElement('div');
+        d.className = 'ld-q-item';
+        d.id = `ldq-${i}`;
+        d.textContent = st.n.map(m => noteName(m).replace(/([0-9]+)$/, '$1')).join(' + ');
+        if (maxDur > 0 && st.dur) {
+          d.style.minWidth = (2 + (st.dur / maxDur) * 4) + 'rem';
+        }
+        qEl.appendChild(d);
+      });
+      const scrubber = document.getElementById('ldScrubber');
+      if (scrubber) {
+        scrubber.max = (learnState.song.steps.length - 1).toString();
+        scrubber.value = learnState.stepIdx.toString();
+      }
+    }
 
     function resizeAndAlignWfCanvas() {
       const canvas = document.getElementById('wfCanvas');
@@ -1896,23 +1956,20 @@
       const steps = learnState.song.steps;
       const scale = currentScale;
 
-      // Detect step advance → trigger fall animation
       if (learnState.stepIdx !== wfLastStepIdx) {
         const prevSt = steps[wfLastStepIdx >= 0 ? wfLastStepIdx : learnState.stepIdx];
         wfSlideTarget = prevSt ? ((prevSt.dur || 0.45) * WF_PX_PER_SEC + WF_GAP) : 0;
-        wfSlide = -wfSlideTarget; // blocks start above, fall into final position
+        wfSlide = -wfSlideTarget;
         wfSlideStart = performance.now();
         wfLastStepIdx = learnState.stepIdx;
       }
 
-      // Ease slide toward 0 (fall into place)
       if (wfSlide !== 0) {
         const t = Math.min(1, (performance.now() - wfSlideStart) / WF_ANIM_MS);
         const ease = 1 - Math.pow(1 - t, 3);
         wfSlide = t >= 1 ? 0 : -wfSlideTarget * (1 - ease);
       }
 
-      // Clear + dim background
       wfCtx.clearRect(0, 0, W, H);
       const bg = wfCtx.createLinearGradient(0, 0, 0, H);
       bg.addColorStop(0, 'rgba(0,0,0,0.6)');
@@ -1920,7 +1977,6 @@
       wfCtx.fillStyle = bg;
       wfCtx.fillRect(0, 0, W, H);
 
-      // Draw note blocks bottom-up (current step at bottom)
       let yBottom = H + wfSlide;
       for (let i = learnState.stepIdx; i < steps.length; i++) {
         const st = steps[i];
@@ -1929,21 +1985,19 @@
         const alpha = Math.max(0.12, 0.88 - dist * 0.16);
         const yTop = yBottom - blockH;
 
-        if (yTop > H) { yBottom -= blockH + WF_GAP; continue; } // below canvas, skip
-        if (yBottom < 0) break; // above canvas, done
+        if (yTop > H) { yBottom -= blockH + WF_GAP; continue; }
+        if (yBottom < 0) break;
 
         st.n.forEach(midi => {
           const idx = midi - MIDI_START;
           if (idx < 0 || idx >= NUM_KEYS) return;
           const bk = isBlack(midi);
-          // White keys → bright white; black keys → warm orange-white
           const r = bk ? 255 : 255, g = bk ? 190 : 255, b = bk ? 120 : 255;
           const fullKw = (bk ? 22 : WK_W) * scale;
-          const kw = fullKw * 0.55; // thinner block
+          const kw = fullKw * 0.55;
           const cx = keyCenterX[idx] * scale;
           const x  = cx - kw / 2;
 
-          // Block fill with glow
           wfCtx.shadowColor = `rgba(${r},${g},${b},0.8)`;
           wfCtx.shadowBlur  = dist === 0 ? 10 : 5;
           wfCtx.fillStyle   = `rgba(${r},${g},${b},${alpha})`;
@@ -1956,7 +2010,6 @@
         yBottom -= blockH + WF_GAP;
       }
 
-      // Fade-in mask at top so blocks appear to emerge smoothly
       const topFade = wfCtx.createLinearGradient(0, 0, 0, 36);
       topFade.addColorStop(0, 'rgba(0,0,0,0.75)');
       topFade.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1977,6 +2030,7 @@
       document.getElementById('btnLdDemo').addEventListener('click', toggleDemoMode);
       document.getElementById('btnLdReset').addEventListener('click', () => { if (demoAbortController) stopDemoMode(); loadSong(learnState.song ? learnState.song.id : Object.keys(LEARNING_SONGS)[0]); });
       document.getElementById('btnWaterfall').addEventListener('click', toggleWaterfall);
+      document.getElementById('btnEasyMode').addEventListener('click', toggleEasyMode);
 
       const midiInput = document.getElementById('midiUpload');
       if (midiInput) midiInput.addEventListener('change', handleMidiUpload);
@@ -1993,6 +2047,7 @@
         });
       }
     }
+
     function toggleLearnMode() {
       learnState.active = !learnState.active;
       document.getElementById('btnLearnToggle').classList.toggle('active', learnState.active);
@@ -2017,7 +2072,7 @@
 
         const allNotes = [];
         midiData.tracks.forEach(track => {
-          if (track.channel === 9) return; // Ignore DRUMS
+          if (track.channel === 9) return; // Ignore drums
           track.notes.forEach(note => {
             allNotes.push(note);
           });
@@ -2028,26 +2083,29 @@
           return;
         }
 
-        allNotes.sort((a, b) => a.time - b.time);
+        // Sort by ticks (integer), not time (float). For Type-1 MIDI files,
+        // ToneJS computes note.time via floating-point integration of the tempo
+        // map independently per track, which introduces tiny rounding errors.
+        // Notes that are truly simultaneous (same tick) across different tracks
+        // can end up with times like 47.2499999 vs 47.2500001, causing them to
+        // fall on opposite sides of an EPSILON boundary and land in different steps.
+        // Grouping by note.ticks (an integer from the raw MIDI data) is exact.
+        allNotes.sort((a, b) => a.ticks - b.ticks);
 
         const steps = [];
         let currentStep = null;
-        const EPSILON = 0.06; // 60ms discrete grouping window
+        const EPSILON_TICKS = 15;
 
         allNotes.forEach(note => {
           let m = Math.round(note.midi);
-          while (m < 48 && m > 12) m += 12; // Octave up to bounds
-          while (m > 108 && m < 127) m -= 12; // Octave down to bounds
-          if (m < 48) m = 48; // final safety cap
-          if (m > 108) m = 108; // final safety cap
+          while (m < 48) m += 12;
+          while (m > 108) m -= 12;
 
-          if (!currentStep || (note.time - currentStep.time > EPSILON)) {
-            currentStep = { n: [m], time: note.time, dur: note.duration };
+          if (!currentStep || (note.ticks - currentStep.ticks > EPSILON_TICKS)) {
+            currentStep = { n: [m], ticks: note.ticks, time: note.time, dur: note.duration };
             steps.push(currentStep);
           } else {
-            if (!currentStep.n.includes(m)) {
-              currentStep.n.push(m);
-            }
+            if (!currentStep.n.includes(m)) currentStep.n.push(m);
             currentStep.dur = Math.max(currentStep.dur || 0, note.duration);
           }
         });
@@ -2056,9 +2114,19 @@
         let name = midiData.header.name || file.name.replace(/\.mid[i]?$/i, '');
         if (!name || name.trim() === '') name = "Imported Song";
 
+        // Detect if the song likely needs two hands (any step with 3+ notes, or
+        // notes spanning more than an octave, suggests a two-hand arrangement)
+        const looksLikeTwoHands = steps.some(st => {
+          if (st.n.length >= 3) return true;
+          if (st.n.length === 2 && Math.abs(st.n[0] - st.n[1]) > 12) return true;
+          return false;
+        });
+
         LEARNING_SONGS[newId] = {
           name: "✍ " + name,
-          steps: steps
+          steps: steps,
+          _rawSteps: steps,         // always preserve the full version
+          looksLikeTwoHands,        // hint for UI
         };
 
         const sel = document.getElementById('songSelect');
@@ -2069,8 +2137,17 @@
 
         sel.value = newId;
         if (demoAbortController) stopDemoMode();
+
+        // Reset easy mode when a new song is loaded
+        if (easyModeActive) {
+          easyModeActive = false;
+          document.getElementById('btnEasyMode').classList.remove('easy-active');
+        }
+
         loadSong(newId);
-        showToast(`📝 Imported ${steps.length} learning steps!`);
+
+        const hint = looksLikeTwoHands ? ' — try ☝ Easy for one hand!' : '';
+        showToast(`📝 Imported ${steps.length} steps${hint}`);
 
       } catch (error) {
         console.error("MIDI import error:", error);
@@ -2090,7 +2167,7 @@
         btn.classList.add('active');
         demoAbortController = new AbortController();
         await playDemo(demoAbortController.signal);
-        if (demoAbortController) stopDemoMode(); // Auto cleanup when finished
+        if (demoAbortController) stopDemoMode();
       }
     }
     function stopDemoMode() {
@@ -2098,11 +2175,7 @@
       demoAbortController = null;
       const btn = document.getElementById('btnLdDemo');
       if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('active'); }
-
-      // Clean up ghost notes
-      for (let midi of activeNotes.keys()) {
-        releaseNote(midi);
-      }
+      for (let midi of activeNotes.keys()) { releaseNote(midi); }
       renderLearnStep();
     }
     async function playDemo(signal) {
@@ -2120,17 +2193,14 @@
         const st = learnState.song.steps[i];
         const nextSt = learnState.song.steps[i + 1];
 
-        // Press target notes cleanly
         st.n.forEach(midi => triggerNote(midi, 100));
 
-        // Dynamic pacing calculation
         let holdMs = (st.dur || 0.45) * 1000;
-        let timeUntilNext = 600; // hardcoded fallback speed
+        let timeUntilNext = 600;
         if (nextSt && typeof nextSt.time !== 'undefined' && typeof st.time !== 'undefined') {
           timeUntilNext = (nextSt.time - st.time) * 1000;
         }
 
-        // Ensure release has physical time to register before next hit
         if (holdMs > timeUntilNext - 20) holdMs = timeUntilNext - 20;
         if (holdMs <= 0) holdMs = 10;
         let breathMs = timeUntilNext - holdMs;
@@ -2138,48 +2208,43 @@
         await sleep(holdMs);
         if (signal.aborted) return;
 
-        // Release organically advances the step via the tracking state machine
         st.n.forEach(midi => releaseNote(midi));
 
-        if (breathMs > 0) {
-          await sleep(breathMs);
-        }
+        if (breathMs > 0) { await sleep(breathMs); }
         if (signal.aborted) return;
       }
-      // Let last release resolve visually
       await sleep(600);
     }
 
     function loadSong(id) {
       learnState.song = LEARNING_SONGS[id];
       learnState.song.id = id;
+      // Ensure _rawSteps is always set (for built-in songs that don't have it)
+      if (!learnState.song._rawSteps) learnState.song._rawSteps = learnState.song.steps;
       learnState.stepIdx = 0;
       learnState.heldTargets.clear();
       learnState.stepSatisfied = false;
 
-      const qEl = document.getElementById('ldQueue');
-      if (qEl) {
-        qEl.innerHTML = '';
-        const maxDur = Math.max(...learnState.song.steps.map(s => s.dur || 0));
-        learnState.song.maxDur = maxDur;
-        learnState.song.steps.forEach((st, i) => {
-          const d = document.createElement('div');
-          d.className = 'ld-q-item';
-          d.id = `ldq-${i}`;
-          d.textContent = st.n.map(m => noteName(m).replace(/([0-9]+)$/, '$1')).join(' + ');
-          if (maxDur > 0 && st.dur) {
-            d.style.minWidth = (2 + (st.dur / maxDur) * 4) + 'rem';
-          }
-          qEl.appendChild(d);
-        });
+      // Reset easy mode on song change
+      if (easyModeActive) {
+        easyModeActive = false;
+        document.getElementById('btnEasyMode').classList.remove('easy-active');
       }
-      const scrubber = document.getElementById('ldScrubber');
-      if (scrubber) {
-        scrubber.max = (learnState.song.steps.length - 1).toString();
-        scrubber.value = "0";
+
+      // Show/dim the Easy button based on whether the song is multi-hand
+      const easyBtn = document.getElementById('btnEasyMode');
+      if (learnState.song.looksLikeTwoHands) {
+        easyBtn.style.opacity = '1';
+        easyBtn.title = 'One-hand mode: shows only the melody line';
+      } else {
+        easyBtn.style.opacity = '0.4';
+        easyBtn.title = 'Easy mode (most useful for two-hand songs)';
       }
+
+      rebuildQueueUI();
       renderLearnStep();
     }
+
     function queueCenter() {
       const qEl = document.getElementById('ldQueue');
       const currEl = document.getElementById(`ldq-${learnState.stepIdx}`);
@@ -2234,7 +2299,7 @@
         const mIdxs = i < 28 ? [i] : (i === 28 ? [28, 29] : [i + 1]);
         if (!activeNotes.has(midiBase + i)) {
           mIdxs.forEach(mIdx => {
-            if (!fadingLEDs.has(mIdx)) { // only clear if not actively playing/fading
+            if (!fadingLEDs.has(mIdx)) {
               if (ledEls[mIdx]) { ledEls[mIdx].style.background = ''; ledEls[mIdx].style.boxShadow = ''; ledEls[mIdx].classList.remove('on'); }
               hwLedState[mIdx] = [0, 0, 0];
             }
@@ -2313,7 +2378,7 @@
       const st = learnState.song.steps[learnState.stepIdx];
       if (!st) return;
       const now = performance.now();
-      let pulse = (Math.sin(now / 150) + 1) / 2 * 0.4 + 0.05; // 0.05 to 0.45
+      let pulse = (Math.sin(now / 150) + 1) / 2 * 0.4 + 0.05;
       let hwChanged = false;
 
       let activeTargets = st.n;
@@ -2324,7 +2389,7 @@
         if (nextSt) {
           activeTargets = nextSt.n;
           isUpcoming = true;
-          pulse = (Math.sin(now / 120) + 1) / 2 * 0.6 + 0.2; // Brighter and faster pulse for upcoming
+          pulse = (Math.sin(now / 120) + 1) / 2 * 0.6 + 0.2;
         } else {
           activeTargets = [];
         }
@@ -2337,7 +2402,7 @@
         const mIdxs = i < 28 ? [i] : (i === 28 ? [28, 29] : [i + 1]);
 
         if (activeTargets.includes(midi)) {
-          if (!isUpcoming && activeNotes.has(midi)) continue; // Don't pulse if actively held
+          if (!isUpcoming && activeNotes.has(midi)) continue;
 
           const origC = KEY_COLORS[i];
           let c = origC;
@@ -2365,7 +2430,7 @@
             }
           });
         } else {
-          if (activeNotes.has(midi)) continue; // Actively held
+          if (activeNotes.has(midi)) continue;
 
           mIdxs.forEach(mIdx => {
             if (!fadingLEDs.has(mIdx)) {
@@ -2406,7 +2471,7 @@
             // Legato hold, allowed
           } else {
             const gb = parseFloat(document.getElementById('brightness').value) || 1;
-            c = { fr: 220, fg: 40, fb: 40, dr: Math.round(220 * gb), dg: Math.round(40 * gb), db: Math.round(40 * gb), css: 'red', full: 'red' }; // Error red scaled
+            c = { fr: 220, fg: 40, fb: 40, dr: Math.round(220 * gb), dg: Math.round(40 * gb), db: Math.round(40 * gb), css: 'red', full: 'red' };
           }
         }
       }
@@ -2438,7 +2503,6 @@
           led.style.boxShadow = `0 0 ${9 * vf}px ${2.5 * vf}px rgb(${vr},${vg},${vb})`;
           led.classList.add('on');
         }
-        // Hardware LED
         hwLedState[mIdx][0] = vr; hwLedState[mIdx][1] = vg; hwLedState[mIdx][2] = vb;
       });
       hwDirty = true;
@@ -2480,10 +2544,7 @@
         mappedLEDs.forEach(mIdx => fadeLED(mIdx, 4000));
         if (sustainTimeouts.has(midi)) clearTimeout(sustainTimeouts.get(midi));
         sustainTimeouts.set(midi, setTimeout(() => {
-          if (sustainHeld.has(midi)) {
-            sustainHeld.delete(midi);
-            releaseNote(midi, true);
-          }
+          if (sustainHeld.has(midi)) { sustainHeld.delete(midi); releaseNote(midi, true); }
         }, 4000));
         return;
       }
@@ -2506,7 +2567,6 @@
       const k = keyByIdx[idx];
       if (k) {
         k.classList.remove('active');
-        // Reset color back to original in case it was a red error note
         const origC = KEY_COLORS[idx];
         k.style.setProperty('--kc', origC.full);
         k.style.setProperty('--kg', `rgba(${origC.fr},${origC.fg},${origC.fb},${k.classList.contains('bk') ? '.7' : '.5'})`);
@@ -2519,19 +2579,14 @@
 
       if (!forceForSustain) {
         mappedLEDs.forEach(mIdx => {
-          fadeLED(mIdx, 500); // Visual fade
-          // Hardware: instant off
+          fadeLED(mIdx, 500);
           hwLedState[mIdx][0] = 0; hwLedState[mIdx][1] = 0; hwLedState[mIdx][2] = 0;
         });
         hwDirty = true;
       } else {
         mappedLEDs.forEach(mIdx => {
           const led = ledEls[mIdx];
-          if (led) {
-            led.style.background = '';
-            led.style.boxShadow = '';
-            led.classList.remove('on');
-          }
+          if (led) { led.style.background = ''; led.style.boxShadow = ''; led.classList.remove('on'); }
           hwLedState[mIdx][0] = 0; hwLedState[mIdx][1] = 0; hwLedState[mIdx][2] = 0;
         });
         hwDirty = true;
@@ -2539,11 +2594,7 @@
 
       if (activeNotes.size === 0) {
         const cn = document.getElementById('currentNote');
-        if (cn) {
-          cn.classList.add('idle');
-          cn.style.color = '';
-          cn.style.textShadow = '';
-        }
+        if (cn) { cn.classList.add('idle'); cn.style.color = ''; cn.style.textShadow = ''; }
         const nd = document.getElementById('noteDisplay');
         if (nd) nd.style.background = 'none';
         clearLiveColor();
@@ -2587,7 +2638,7 @@
       if (!on) { sustainHeld.forEach(m => releaseNote(m, true)); sustainHeld.clear(); }
     }
 
-    // ── LED fade (visual + hardware tracking) ─────────────────
+    // ── LED fade ──────────────────────────────────────────────
     function fadeLED(mIdx, customDur) {
       const led = ledEls[mIdx]; if (!led) return;
       const keyIdx = mIdx < 28 ? mIdx : (mIdx === 28 || mIdx === 29 ? 28 : mIdx - 1);
@@ -2601,7 +2652,6 @@
         if (fac <= 0) {
           led.style.background = ''; led.style.boxShadow = ''; led.classList.remove('on');
           fadingLEDs.delete(mIdx);
-          // Note: hardware was already set to 0 at noteOff; nothing to do here
           return;
         }
         const r = Math.round(c.dr * fac), g = Math.round(c.dg * fac), b = Math.round(c.db * fac);
@@ -2671,11 +2721,7 @@
       let lChord = null, rChord = null;
 
       if (allMidis.length >= 2) {
-        // 1. Try all notes as one chord
         lChord = detectChord(allMidis);
-
-        // 2. If no single chord, try every binary split (low notes | high notes)
-        //    and pick the first split where both halves are recognised chords
         if (!lChord) {
           for (let s = 1; s < allMidis.length; s++) {
             const l = detectChord(allMidis.slice(0, s));
@@ -2698,12 +2744,10 @@
         ledEls[i].style.background = c.css;
         ledEls[i].style.boxShadow = `0 0 9px 2.5px ${c.css}`;
         ledEls[i].classList.add('on');
-        // Hardware
         hwLedState[i][0] = c.dr; hwLedState[i][1] = c.dg; hwLedState[i][2] = c.db;
         setTimeout(() => fadeLED(i), 400 + i * 10);
       }
       hwDirty = true;
-      // Fade hardware out after flash
       setTimeout(() => {
         hwLedState.forEach(c => { c[0] = 0; c[1] = 0; c[2] = 0; });
         hwDirty = true;
